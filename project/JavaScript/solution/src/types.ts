@@ -63,6 +63,7 @@ export interface AgentState {
     suspect_names: string
     appraisal_result?: string
     evidence_analysis?: string
+    intelligence_report?: string
     final_conclusion?: string
     messages: Array<{
         role: string
