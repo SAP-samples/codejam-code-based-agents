@@ -70,7 +70,45 @@ def call_grounding_service(user_question: str) -> str:
 
     response_dict = json.dumps(response.model_dump(), indent=2)  # Convert to JSON string
     return response_dict  # Return retrieved document chunks to the agent
-    
+
+
+@tool("call_sonar_pro_search")
+def call_sonar_pro_search(search_query: str) -> str:
+    """Search the web using Perplexity's sonar-pro model for real-time information
+    about crimes, suspects, and criminal patterns. Use this to find similar incidents,
+    criminal networks, public records, or patterns that are not in internal documents.
+
+    Args:
+        search_query: The search query about crimes, suspects, or criminal patterns
+
+    Returns:
+        Search results with source citations from the web
+    """
+    from litellm import completion
+
+    try:
+        response = completion(
+            model="sap/sonar-pro",  # Perplexity model with web search
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a web search assistant specializing in criminal intelligence. Search for accurate, recent information and always provide source citations with URLs and dates."
+                },
+                {
+                    "role": "user",
+                    "content": search_query
+                }
+            ],
+            temperature=0.2,  # Lower temperature for factual search
+        )
+
+        result = response.choices[0].message.content
+        return result
+
+    except Exception as e:
+        return f"Error calling sonar-pro web search: {str(e)}"
+
+
 @CrewBase
 class InvestigatorCrew():
     """InvestigatorCrew crew"""
@@ -105,7 +143,22 @@ class InvestigatorCrew():
         return Task(
             config=self.tasks_config['analyze_evidence_task']
         )
-    
+
+    @agent
+    def intelligence_researcher_agent(self) -> Agent:
+        return Agent(
+            config=self.agents_config['intelligence_researcher_agent'],
+            verbose=True,
+            tools=[call_sonar_pro_search]  # Web search tool
+        )
+
+    @task
+    def research_criminal_network(self) -> Task:
+        return Task(
+            config=self.tasks_config['research_criminal_network'],
+            context=[self.analyze_evidence_task()]  # Uses internal evidence to inform web searches
+        )
+
     @agent
     def lead_detective_agent(self) -> Agent:
         return Agent(
@@ -117,7 +170,7 @@ class InvestigatorCrew():
     def solve_crime(self) -> Task:
         return Task(
             config=self.tasks_config['solve_crime'],
-            context=[self.appraise_loss_task(), self.analyze_evidence_task()]  # 👈 Lead detective uses results from other tasks
+            context=[self.appraise_loss_task(), self.analyze_evidence_task(), self.research_criminal_network()]  # Lead detective uses all three sources
         )
 
     @crew

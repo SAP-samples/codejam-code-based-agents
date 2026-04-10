@@ -52,6 +52,7 @@ export interface RPT1Payload {
     index_column: string
     rows: StolenItem[]
     parse_data_types?: boolean // Optional: control data type parsing
+    data_schema?: any // Optional: schema definition for data types
 }
 
 /**
