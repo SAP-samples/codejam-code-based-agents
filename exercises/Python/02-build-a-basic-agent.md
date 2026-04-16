@@ -111,7 +111,7 @@ if __name__ == "__main__":
 
 👉 Execute the crew with the basic agent:
 
-> ☝️ Make sure you're in the repository root directory (e.g., `codejam-code-based-agents-1`) when running this command. If you're already in the `starter-project` folder, use the appropriate command for your OS.
+> ☝️ Make sure you're in the repository root directory (e.g., `codejam-code-based-agents`) when running this command. If you're already in the `starter-project` folder, use the appropriate command for your OS.
 
 **From repository root:**
 
