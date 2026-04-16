@@ -6,7 +6,7 @@
 
 ## Open SAP Business Application Studio
 
-👉 Go back to the [BTP cockpit](https://emea.cockpit.btp.cloud.sap/cockpit#/globalaccount/275320f9-4c26-4622-8728-b6f5196075f5/subaccount/a5a420d8-58c6-4820-ab11-90c7145da589/subaccountoverview).
+👉 Go back to the [BTP cockpit](https://emea.cockpit.btp.cloud.sap/cockpit/?idp=a7rg4vxjp.accounts.ondemand.com#/globalaccount/275320f9-4c26-4622-8728-b6f5196075f5/subaccount/a5a420d8-58c6-4820-ab11-90c7145da589?layout=TwoColumnsMidExpanded).
 
 👉 Navigate to `Instances and Subscriptions` and open `SAP Business Application Studio`.
 
@@ -56,7 +56,7 @@ https://github.com/SAP-samples/codejam-code-based-agents.git
 
 ```Python
 LITELLM_PROVIDER="sap"
-AICORE_AUTH_URL="https://#####.authentication.eu10.hana.ondemand.com/oauth/token"
+AICORE_AUTH_URL="https://#####.authentication.eu10.hana.ondemand.com/" + "oauth/token"
 AICORE_CLIENT_ID="sb-3c636fc2-d352-496a-851d-7a7d6005dcd4!b505946|aicore!b540"
 AICORE_CLIENT_SECRET="#####"
 AICORE_RESOURCE_GROUP="ai-agents-codejam"
@@ -65,7 +65,7 @@ RPT1_DEPLOYMENT_URL="https://api.ai.prod.eu-central-1.aws.ml.hana.ondemand.com/v
 ```
 👉 You will need to UPDATE these variables but keep the given structure. The correct information you can find in the SAP AI Core service-key in your BTP cockpit.
 
-👉 Go back to the Subaccount in the [BTP cockpit](https://emea.cockpit.btp.cloud.sap/cockpit#/globalaccount/275320f9-4c26-4622-8728-b6f5196075f5/subaccount/a5a420d8-58c6-4820-ab11-90c7145da589/subaccountoverview).
+👉 Go back to the Subaccount in the [BTP cockpit](https://emea.cockpit.btp.cloud.sap/cockpit/?idp=a7rg4vxjp.accounts.ondemand.com#/globalaccount/275320f9-4c26-4622-8728-b6f5196075f5/subaccount/a5a420d8-58c6-4820-ab11-90c7145da589?layout=TwoColumnsMidExpanded).
 
 👉 Navigate to `Instances and Subscriptions` and open the SAP AI Core instance's service binding.
 

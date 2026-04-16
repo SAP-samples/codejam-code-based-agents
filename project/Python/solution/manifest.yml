@@ -1,0 +1,20 @@
+applications:
+  - name: investigator-crew-a2a
+    memory: 1024M
+    disk_quota: 2048M
+    instances: 1
+    buildpacks:
+      - https://github.com/cloudfoundry/python-buildpack/releases/download/v1.8.43/python-buildpack-cflinuxfs4-v1.8.43.zip
+    health-check-type: http
+    health-check-http-endpoint: /health
+    timeout: 180
+    command: python -m uvicorn server:app --host 0.0.0.0 --port $PORT --workers 1
+    services:
+      - generative-ai-hub
+    env:
+      APP_URL: https://developer-advocates-free-tier-genai-codejam-luyq1wkg-dev9296031.cfapps.eu10-004.hana.ondemand.com
+      LITELLM_PROVIDER: sap
+      AICORE_RESOURCE_GROUP: ai-agents-codejam
+      RPT1_DEPLOYMENT_URL: https://api.ai.prod.eu-central-1.aws.ml.hana.ondemand.com/v2/inference/deployments/d67ab78ae72fd41d/predict
+      CREWAI_TRACING_ENABLED: "false"
+      BP_PYTHON_VERSION: "3.13.11"

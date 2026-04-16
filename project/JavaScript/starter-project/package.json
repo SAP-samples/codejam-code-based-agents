@@ -19,19 +19,19 @@
   "author": "Kevin Riedelsheimer",
   "license": "UNLICENSED",
   "dependencies": {
-    "@langchain/core": "^0.3.0",
-    "@langchain/langgraph": "^0.2.0",
-    "@sap-ai-sdk/orchestration": "^1.0.0",
-    "@sap-ai-sdk/ai-api": "^1.0.0",
-    "@sap-ai-sdk/foundation-models": "^1.0.0",
-    "@sap-ai-sdk/rpt": "latest",
-    "axios": "^1.7.0",
-    "dotenv": "^16.4.0",
-    "zod": "^3.23.0"
+    "@langchain/core": "1.1.39",
+    "@langchain/langgraph": "1.2.8",
+    "@sap-ai-sdk/orchestration": "2.9.0",
+    "@sap-ai-sdk/ai-api": "2.9.0",
+    "@sap-ai-sdk/foundation-models": "2.9.0",
+    "@sap-ai-sdk/rpt": "2.9.0",
+    "axios": "1.15.0",
+    "dotenv": "17.4.2",
+    "zod": "4.3.6"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "tsx": "^4.19.0",
-    "typescript": "^5.6.0"
+    "@types/node": "25.6.0",
+    "tsx": "4.21.0",
+    "typescript": "6.0.2"
   }
 }
