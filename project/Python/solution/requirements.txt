@@ -1,0 +1,20 @@
+# Core CrewAI agent framework with A2A protocol support
+crewai[a2a]
+# A2A SDK with HTTP server support
+a2a-sdk[http-server]
+# LLM interaction with SAP Generative AI Hub
+litellm==1.82.6
+# Environment configuration
+python-dotenv
+# Data validation
+pydantic
+# HTTP client
+httpx
+# HTTP requests
+requests
+# YAML configuration files
+PyYAML
+# SAP AI Core SDK for integration with SAP Generative AI Hub
+sap-ai-sdk-base==3.4.0
+sap-ai-sdk-core==3.3.0
+sap-ai-sdk-gen==6.7.0
