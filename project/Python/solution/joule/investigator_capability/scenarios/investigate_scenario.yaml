@@ -1,0 +1,9 @@
+description: >-
+  This skill investigates art theft cases by appraising the value of stolen
+  items, analyzing evidence from security logs, bank records, phone records,
+  and criminal histories, and identifying the most likely suspect based on
+  available evidence. It coordinates multiple specialist agents to deliver
+  a comprehensive investigation report.
+target:
+  name: investigate_function
+  type: function

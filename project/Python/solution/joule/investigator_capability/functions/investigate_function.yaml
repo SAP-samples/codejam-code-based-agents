@@ -1,0 +1,10 @@
+action_groups:
+  - actions:
+      - type: agent-request
+        system_alias: INVESTIGATOR_AGENT
+        agent_type: remote
+        result_variable: "apiResponse"
+      - type: message
+        message:
+          type: text
+          content: "<? apiResponse.body.artifacts[0].parts[0].text ?>"

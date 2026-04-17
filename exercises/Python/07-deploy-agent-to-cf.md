@@ -530,6 +530,7 @@ CF Router → investigator-crew-a2a (uvicorn / FastAPI)
 5. ✅ [Add the Grounding Service](05-add-the-grounding-service.md)
 6. ✅ [Solve the crime](06-solve-the-crime.md)
 7. ✅ [Deploy your agent to CF with A2A](07-deploy-agent-to-cf.md) (this exercise)
+8. 📌 [Integrate your agent into SAP Joule](08-integrate-agent-into-joule.md)
 
 ---
 
