@@ -8,5 +8,5 @@ metadata:
   description: Capability containing the investigator crew agent for art theft investigation
 
 system_aliases:
-  INVESTIGATOR_AGENT_XX:
+  INVESTIGATOR_AGENT:
     destination: INVESTIGATOR_AGENT

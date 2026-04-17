@@ -1,5 +1,7 @@
 action_groups:
   - actions:
+      - type: status-update
+        message: Investigating...
       - type: agent-request
         system_alias: INVESTIGATOR_AGENT
         agent_type: remote
@@ -7,4 +9,5 @@ action_groups:
       - type: message
         message:
           type: text
+          markdown: true
           content: "<? apiResponse.body.artifacts[0].parts[0].text ?>"

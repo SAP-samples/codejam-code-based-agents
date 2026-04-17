@@ -25,7 +25,7 @@ A **capability** is a package of skills that you add to Joule. It's defined enti
 | **Capability** | A group of skills packaged together | `investigator_capability` |
 | **Scenario** | A user-facing skill description — Joule matches user questions against it | "Investigate an art theft" |
 | **Function** | The executable logic a scenario triggers | Calls the A2A agent endpoint |
-| **System Alias** | A named reference to a BTP Destination | `INVESTIGATOR_AGENT_XX` |
+| **System Alias** | A named reference to a BTP Destination | `INVESTIGATOR_AGENT` |
 | **Digital Assistant** | The top-level config that assembles capabilities | `da.sapdas.yaml` |
 
 ### How the Pieces Fit Together
@@ -225,6 +225,8 @@ New-Item -ItemType Directory -Path project\Python\starter-project\joule\investig
 New-Item -ItemType Directory -Path project\Python\starter-project\joule\investigator_capability\scenarios -Force
 ```
 
+> 💡 **In Business Application Studio (BAS):** You can create the folders visually instead. Right-click the `starter-project` folder in the Explorer panel and choose **New Folder**. Create `joule`, then inside it `investigator_capability`, and inside that `functions` and `scenarios`.
+
 ### Step 2: Create capability.sapdas.yaml
 
 This is the root configuration file for your capability. It defines metadata, the schema version, and the system aliases that map to BTP Destinations.
@@ -242,11 +244,11 @@ metadata:
   description: Capability containing the investigator crew agent for art theft investigation
 
 system_aliases:
-  INVESTIGATOR_AGENT_XX:
+  INVESTIGATOR_AGENT:
     destination: INVESTIGATOR_AGENT_XX
 ```
 
-> ⚠️ **Replace `XX`** with your participant number in both the alias key and the destination value. These must match the BTP Destination name you created in the previous section.
+> ⚠️ **Replace `XX`** in `destination` only with your participant number (e.g., `INVESTIGATOR_AGENT_01`). This must match the BTP Destination name you created in the previous section. The system alias key (`INVESTIGATOR_AGENT`) stays the same for everyone — only the destination name is unique per participant.
 
 > 💡 **Understanding each field:**
 >
@@ -257,7 +259,7 @@ system_aliases:
 > | `name` | Internal identifier for the capability. Must be unique within your Joule instance. |
 > | `display_name` | Human-readable name shown in Joule Studio. Alphanumeric + underscore + hyphen only. |
 > | `description` | Short description of what this capability does (max 512 chars). |
-> | `system_aliases` | Maps a logical name (used in function YAMLs) to a BTP Destination name. The key (`INVESTIGATOR_AGENT_XX`) is referenced by the `system_alias` field in the function. |
+> | `system_aliases` | Maps a logical name (used in function YAMLs) to a BTP Destination name. The key (`INVESTIGATOR_AGENT`) is referenced by the `system_alias` field in the function. |
 
 ### Step 3: Create the Scenario
 
@@ -287,9 +289,13 @@ target:
 >
 > **Writing good descriptions matters.** If the description is too vague ("helps with investigations"), Joule may not match it reliably. If it's too narrow ("only for the Grand Museum heist"), it won't match variations. The description above includes multiple keywords: "art theft", "stolen items", "evidence", "security logs", "suspect", "investigation report".
 
+> ⚠️ **The `investigate_function` does not exist yet** — you'll create it in the next step. If you run `joule lint` now, it will report that the target function is missing. That is expected. Continue to Step 4 to resolve it.
+
 ### Step 4: Create the Function
 
 The function is where the action happens. It defines the `agent-request` action that calls your A2A agent and a `message` action that displays the result.
+
+> 💡 **In Business Application Studio (BAS):** Right-click the `functions` folder in the Explorer panel and choose **New File** to create the file below.
 
 👉 Create a new file [`/project/Python/starter-project/joule/investigator_capability/functions/investigate_function.yaml`](/project/Python/starter-project/joule/investigator_capability/functions/investigate_function.yaml):
 
@@ -297,23 +303,22 @@ The function is where the action happens. It defines the `agent-request` action 
 action_groups:
   - actions:
       - type: agent-request
-        system_alias: INVESTIGATOR_AGENT_XX
+        system_alias: INVESTIGATOR_AGENT
         agent_type: remote
         result_variable: "apiResponse"
       - type: message
         message:
           type: text
+          markdown: true
           content: "<? apiResponse.body.artifacts[0].parts[0].text ?>"
 ```
-
-> ⚠️ **Replace `XX`** with your participant number in `system_alias`. This must match the key you defined in `capability.sapdas.yaml`.
 
 > 💡 **Understanding the `agent-request` action:**
 >
 > | Field | Purpose |
 > |---|---|
 > | `type: agent-request` | Tells Joule to call an external agent using the A2A protocol (available since DTA schema v3.28.0). |
-> | `system_alias: INVESTIGATOR_AGENT_XX` | References the system alias from `capability.sapdas.yaml`, which maps to the BTP Destination pointing to your CF app. |
+> | `system_alias: INVESTIGATOR_AGENT` | References the system alias from `capability.sapdas.yaml`, which maps to your participant-specific BTP Destination. |
 > | `agent_type: remote` | Specifies this is a **code-based** (Bring Your Own Agent) agent hosted outside of Joule. Use `local` for content-based agents built inside the Joule framework. |
 > | `result_variable: "apiResponse"` | Stores the full A2A response in a variable. You access it in subsequent actions using SpEL expressions. |
 
@@ -323,6 +328,7 @@ action_groups:
 > |---|---|
 > | `type: message` | Sends a message back to the user in the Joule chat. |
 > | `type: text` | The message format. Joule also supports `card`, `list`, `carousel`, and other rich formats. |
+> | `markdown: true` | Tells Joule to render the response as formatted markdown. Without this, Joule displays the raw text including all the `#`, `**`, and `-` characters. With it, headers, bullet points, and bold text are rendered properly — making the investigation report significantly more readable in the chat. |
 > | `content` | The message text. The `<? ... ?>` delimiters indicate a **SpEL expression** — Joule's scripting language for extracting values from variables. |
 
 ### Understanding the A2A Response
@@ -417,17 +423,17 @@ cd project/Python/starter-project/joule
 👉 Run the following command to compile the YAML files and deploy them as a test assistant:
 
 ```bash
-joule deploy -c -n "investigator_test_XX"
+joule deploy -c -n "investigator_assistant_XX"
 ```
 
-> ⚠️ **Replace `XX`** with your participant number (e.g., `investigator_test_01`).
+> ⚠️ **Replace `XX`** with your participant number (e.g., `investigator_assistant_01`).
 
 > 💡 **Understanding the flags:**
 >
 > | Flag | Purpose |
 > |---|---|
 > | `-c` | Compile before deploying. This validates your YAML files against the schema, checks for errors, and packages them into a `.daar` archive (Design-time Artifact Archive). |
-> | `-n "investigator_test_XX"` | Name of the test assistant to create. Using `-n` creates a standalone assistant for testing — it doesn't affect the production Joule instance. |
+> | `-n "investigator_assistant_XX"` | Name of the test assistant to create. Using `-n` creates a standalone assistant for testing — it doesn't affect the production Joule instance. |
 
 You should see output similar to:
 
@@ -446,8 +452,8 @@ Severity:            LOW
 ✔ Downloaded runtime artifact (joule.ext_investigator_capability_1.0.0.daar)
 ✔ Building runtime artifact
   > joule.ext_investigator_capability_1.0.0.daar added to the RTA
-✔ Triggering deployment (investigator_test_XX)
-✔ Your digital assistant (investigator_test_XX) deployed successfully
+✔ Triggering deployment (investigator_assistant_XX)
+✔ Your digital assistant (investigator_assistant_XX) deployed successfully
 ```
 
 > 💡 **The i18n warning is expected** — it just means you haven't added localization files, which are optional for this exercise.
@@ -460,7 +466,7 @@ Severity:            LOW
 joule list
 ```
 
-You should see `investigator_test_XX` in the list.
+You should see `investigator_assistant_XX` in the list.
 
 ---
 
@@ -471,7 +477,7 @@ You should see `investigator_test_XX` in the list.
 👉 Open the Joule web client for your test assistant:
 
 ```bash
-joule launch "investigator_test_XX"
+joule launch "investigator_assistant_XX"
 ```
 
 This opens a browser tab with the Joule chat interface connected to your test assistant.
@@ -609,9 +615,10 @@ User sees investigation result in Joule chat
 **Issue**: Deployment fails with "destination not found" or agent-request returns an error
 
 - **Solution**: Verify that:
-  1. The BTP Destination name (`INVESTIGATOR_AGENT_XX`) matches **exactly** the `system_aliases` key in `capability.sapdas.yaml`
-  2. The destination exists in the BTP cockpit under Connectivity → Destinations
-  3. The destination URL is correct and your CF app is running (`cf app investigator-crew-a2a`)
+  1. The BTP Destination name (`INVESTIGATOR_AGENT_XX`) matches **exactly** the `destination` value in `capability.sapdas.yaml`'s `system_aliases` block
+  2. The system alias key is `INVESTIGATOR_AGENT` (no XX) in both `capability.sapdas.yaml` and `investigate_function.yaml`
+  3. The destination exists in the BTP cockpit under Connectivity → Destinations
+  4. The destination URL is correct and your CF app is running (`cf app investigator-crew-a2a`)
 
 **Issue**: Joule responds with an empty message or an error
 
