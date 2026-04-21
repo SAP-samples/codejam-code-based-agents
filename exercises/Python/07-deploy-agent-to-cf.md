@@ -326,7 +326,7 @@ applications:
 
 CF's Python buildpack reads `runtime.txt` to know which Python version to install.
 
-👉 Create a new file [`/project/Python/starter-project/runtime.txt`](/project/Python/starter-project/runtime.txt):
+👉 Create a new file [`/project/Python/starter-project/runtime.txt`](/project/Python/starter-project/runtime.txt) and add the following line to it:
 
 ```
 python-3.13.x
@@ -363,6 +363,10 @@ __pycache__/
 cf login -a https://api.cf.eu10-004.hana.ondemand.com --origin a7rg4vxjp-platform
 ```
 👉 Use the credentials provided in the system access email.
+```
+Email: cd-agents-###
+Password: *******
+```
 
 > The `--origin` flag ensures CF redirects you to the correct custom identity provider for this CodeJam.
 
