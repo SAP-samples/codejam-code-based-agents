@@ -47,7 +47,8 @@ If you are unsure on which path you should choose, ask the instructor for guidan
 - [Exercise 03 - Build your first agent tool](./exercises/Python/03-add-your-first-tool.md)
 - [Exercise 04 - Building a multi-agent system](./exercises/Python/04-building-multi-agent-system.md)
 - [Exercise 05 - Add the Grounding service](./exercises/Python/05-add-the-grounding-service.md)
-- [Exercise 06 - Use your AI Agents to solve the crime](./exercises/Python/06-solve-the-crime.md)
+- [Exercise 06 - Discover Connected Crimes with Web Search](./exercises/Python/06-discover-connected-crimes.md)
+- [Exercise 07 - Use your AI Agents to solve the crime](./exercises/Python/07-solve-the-crime.md)
 
 The instructor will start you on the first exercise. Proceed to the next exercise once the instructor tells you to.
 

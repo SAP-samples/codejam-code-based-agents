@@ -12,12 +12,33 @@ evidence_analyst_agent:
   role: >
     Criminal Evidence Analyst
   goal: >
+<<<<<<< web-search-exercise
+    Retrieve and analyze evidence ONLY via the call_grounding_service tool.
+    Search for each suspect by name: {suspect_names}. Do NOT fabricate any evidence or alibis.
+=======
     Retrieve and analyze evidence ONLY via the call_grounding_service tool. 
     Search for each suspect by name: Sophie Dubois, Marcus Chen, Viktor Petrov. Do NOT fabricate any evidence or alibis.
+>>>>>>> main
     Report only what the tool returns.
   backstory: >
     You are a methodical evidence analyst who bases conclusions strictly on retrieved documents. You never assume facts.
   llm: sap/anthropic--claude-4.5-opus
+
+intelligence_researcher_agent:
+  role: >
+    Open-Source Intelligence (OSINT) Researcher
+  goal: >
+    Search the web for similar art thefts, criminal patterns, and suspect backgrounds
+    to determine if this heist is part of a larger criminal network. Use the
+    call_sonar_pro_search tool to find recent incidents, news reports, and public
+    criminal records for all three suspects: {suspect_names}.
+  backstory: >
+    You are an OSINT specialist who excels at finding patterns across multiple
+    crime scenes. You search public databases, news archives, and criminal records
+    to connect seemingly isolated incidents. Your expertise has uncovered several
+    international art theft rings, and you know how to distinguish professional
+    criminals from amateurs.
+  llm: sap/gpt-4o
 
 lead_detective_agent:
   role: >

@@ -1,3 +1,9 @@
+<<<<<<< web-search-exercise
+crewai==0.86.0
+litellm==1.82.6
+python-dotenv==1.0.0
+sap-ai-sdk-gen
+=======
 # Core CrewAI agent framework with A2A protocol support
 crewai[a2a]
 # A2A SDK with HTTP server support
@@ -18,3 +24,4 @@ PyYAML
 sap-ai-sdk-base==3.4.0
 sap-ai-sdk-core==3.3.0
 sap-ai-sdk-gen==6.7.0
+>>>>>>> main
