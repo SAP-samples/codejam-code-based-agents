@@ -1,8 +1,8 @@
 # Setup SAP Business Application Studio and your personal development space
 
-> [SAP Business Application Studio](https://help.sap.com/docs/bas/sap-business-application-studio/what-is-sap-business-application-studio) is based on Code-OSS, an open-source project used for building Visual Studio Code. Available as a cloud service, SAP Business Application Studio (BAS) provides a desktop-like experience similar to leading IDEs, with command line and optimized editors.
+[SAP Business Application Studio](https://help.sap.com/docs/bas/sap-business-application-studio/what-is-sap-business-application-studio) is based on Code-OSS, an open-source project used for building Visual Studio Code. Available as a cloud service, SAP Business Application Studio (BAS) provides a desktop-like experience similar to leading IDEs, including a terminal and optimized editors for SAP development.
 
-> At the heart of SAP Business Application Studio are the dev spaces. The dev spaces are comparable to isolated virtual machines in the cloud containing tailored tools and pre-installed runtimes per business scenario, such as SAP Fiori, SAP S/4HANA extensions, Workflow, HANA native development and more. This simplifies and speeds up the setup of your development environment, enabling you to efficiently develop, test, build, and run your solutions locally or in the cloud.
+BAS is utilizing the concept of development spaces (dev spaces). Dev spaces are comparable to isolated virtual machines in the cloud containing tailored tools and pre-installed runtimes, such as SAP Fiori, SAP S/4HANA extensions, Workflow, HANA native development and more.. This simplifies and speeds up the setup of your development environment, enabling you to efficiently develop, test, build, and run your solutions in BAS or in the cloud.
 
 ## Open SAP Business Application Studio
 
@@ -18,7 +18,7 @@
 
 ![Create a Dev Space 1](/exercises/data/images/bas.png)
 
-👉 Enter the name of the dev space `GenAICodeJam_XX`, select the `Basic` kind of application and `Python Tools` from Additional SAP Extensions.
+👉 Enter the name of the dev space `GenAICodeJam_XX`, select the `Basic` kind of application and `Python Tools` from `Additional SAP Extensions`.
 
 > Replace the `XX` with your initials.
 
@@ -63,6 +63,7 @@ AICORE_RESOURCE_GROUP="ai-agents-codejam"
 AICORE_BASE_URL="https://api.ai.prod.eu-central-1.aws.ml.hana.ondemand.com"
 RPT1_DEPLOYMENT_URL="https://api.ai.prod.eu-central-1.aws.ml.hana.ondemand.com/v2/inference/deployments/###/predict"
 ```
+
 👉 You will need to UPDATE these variables but keep the given structure. The correct information you can find in the SAP AI Core service-key in your BTP cockpit.
 
 👉 Go back to the Subaccount in the [BTP cockpit](https://emea.cockpit.btp.cloud.sap/cockpit/?idp=a7rg4vxjp.accounts.ondemand.com#/globalaccount/275320f9-4c26-4622-8728-b6f5196075f5/subaccount/a5a420d8-58c6-4820-ab11-90c7145da589?layout=TwoColumnsMidExpanded).
@@ -74,7 +75,6 @@ RPT1_DEPLOYMENT_URL="https://api.ai.prod.eu-central-1.aws.ml.hana.ondemand.com/v
 👉 Make sure the correct resource group `AICORE_RESOURCE_GROUP` is assigned, we will use `ai-agents-codejam` for this CodeJam.
 
 > ☝️ You will update the `RPT-1_DEPLOYMENT_URL` in a later exercise.
-
 
 ## Create a Python virtual environment and install the LiteLLM and CrewAI
 
@@ -94,7 +94,7 @@ python3 --version
 > - **Linux**: Install Python 3.11 with your distro package manager, for example:
 >   - Ubuntu/Debian: `sudo apt update && sudo apt install python3.11 python3.11-venv`
 >   - Fedora/RHEL: `sudo dnf install python3.11`
->   Then use `python3.11` in the commands below.
+>     Then use `python3.11` in the commands below.
 > - **Windows**: Install Python 3.11 from the [official Python downloads page](https://www.python.org/downloads/windows/) and make sure **Add python.exe to PATH** is enabled during installation. Then use `python` (or `py -3.11`) in the commands below.
 
 👉 Create a virtual environment using the following command:

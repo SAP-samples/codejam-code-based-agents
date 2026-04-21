@@ -10,10 +10,43 @@ The Lead Detective receives results from both previous agents via shared state. 
 
 👉 Open [`/project/JavaScript/starter-project/src/investigationWorkflow.ts`](/project/JavaScript/starter-project/src/investigationWorkflow.ts)
 
+👉 Add the missing imports at the top of the file:
+
+```typescript
+import { OrchestrationClient } from "@sap-ai-sdk/orchestration";
+import { AGENT_CONFIGS } from "./agentConfigs.js";
+```
+
+👉 Add `orchestrationClient` as a class field and initialize it in the constructor:
+
+```typescript
+export class InvestigationWorkflow {
+  private graph;
+  private orchestrationClient: OrchestrationClient;
+
+  // ...
+
+  constructor(model: string = process.env.MODEL_NAME!) {
+    this.orchestrationClient = new OrchestrationClient({
+      promptTemplating: {
+        model: {
+          name: model,
+          params: {
+            temperature: 0.7,
+            max_tokens: 2000,
+          },
+        },
+      },
+    });
+    this.graph = this.buildGraph();
+  }
+}
+```
+
 👉 Add the Lead Detective node method inside your `InvestigationWorkflow` class, after `evidenceAnalystNode`:
 
 ```typescript
-    private async leadDetectiveNode(state: AgentState): Promise<Partial<AgentState>> {
+    private async leadDetectiveNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
         console.log('\n🔍 Lead Detective analyzing all findings...')
 
         const userMessage = 'Analyze all the evidence and identify the culprit. Provide a detailed conclusion.'
@@ -67,17 +100,8 @@ The Lead Detective receives results from both previous agents via shared state. 
 👉 Update the `buildGraph` method to include the Lead Detective:
 
 ```typescript
-    private buildGraph(): StateGraph<AgentState> {
-        const workflow = new StateGraph<AgentState>({
-            channels: {
-                payload: null,
-                suspect_names: null,
-                appraisal_result: null,
-                evidence_analysis: null,
-                final_conclusion: null,
-                messages: null,
-            },
-        })
+    private buildGraph() {
+        const workflow = new StateGraph(AgentState)
 
         workflow
             .addNode('appraiser', this.appraiserNode.bind(this))
@@ -104,42 +128,24 @@ The Lead Detective receives results from both previous agents via shared state. 
 👉 Check your [`/project/JavaScript/starter-project/src/main.ts`](/project/JavaScript/starter-project/src/main.ts): it needs no changes from Exercise 04.
 
 ```typescript
-import 'dotenv/config'
-import { InvestigationWorkflow } from './investigationWorkflow.js'
-import { payload } from './payload.js'
+import "dotenv/config";
+import { InvestigationWorkflow } from "./investigationWorkflow.js";
+import { payload } from "./payload.js";
 
 async function main() {
-    console.log('═══════════════════════════════════════════════════════════')
-    console.log('   🔍 ART THEFT INVESTIGATION - MULTI-AGENT SYSTEM')
-    console.log('═══════════════════════════════════════════════════════════\n')
+  const workflow = new InvestigationWorkflow(process.env.MODEL_NAME!);
+  const suspectNames = "Sophie Dubois, Marcus Chen, Viktor Petrov";
 
-    const workflow = new InvestigationWorkflow(process.env.MODEL_NAME!)
-    const suspectNames = 'Sophie Dubois, Marcus Chen, Viktor Petrov'
+  const result = await workflow.kickoff({
+    payload,
+    suspect_names: suspectNames,
+  });
 
-    console.log('📋 Case Details:')
-    console.log(`   • Stolen Items: ${payload.rows.length} artworks`)
-    console.log(`   • Suspects: ${suspectNames}`)
-    console.log(`   • Investigation Team: 3 specialized agents\n`)
-
-    const startTime = Date.now()
-
-    const result = await workflow.kickoff({
-        payload,
-        suspect_names: suspectNames,
-    })
-
-    const duration = ((Date.now() - startTime) / 1000).toFixed(2)
-
-    console.log('\n═══════════════════════════════════════════════════════════')
-    console.log('   📘 FINAL INVESTIGATION REPORT')
-    console.log('═══════════════════════════════════════════════════════════\n')
-    console.log(result)
-    console.log('\n═══════════════════════════════════════════════════════════')
-    console.log(`   ⏱️  Investigation completed in ${duration} seconds`)
-    console.log('═══════════════════════════════════════════════════════════\n')
+  console.log("\n📘 FINAL INVESTIGATION REPORT\n");
+  console.log(result);
 }
 
-main()
+main();
 ```
 
 ---

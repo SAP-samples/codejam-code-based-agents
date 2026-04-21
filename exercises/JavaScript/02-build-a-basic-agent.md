@@ -12,7 +12,7 @@ In this exercise, you will build an agent with TypeScript, LangGraph and the SAP
 
 [**LangGraph**](https://langchain-ai.github.io/langgraphjs/) is an open-source library for building stateful, multi-step workflows with LLMs. It models your agent logic as a **graph**; a set of nodes (steps) connected by edges (transitions). Unlike simpler agent frameworks, LangGraph gives you explicit control over how state flows through your application, making it ideal for complex, multi-agent systems.
 
-[**SAP Cloud SDK for AI**](https://github.com/SAP/ai-sdk-js) is SAP's official TypeScript/JavaScript SDK for interacting with SAP AI Core. It provides the `OrchestrationClient` to call any model available in Generative AI Hub through a unified API, no matter whether you're using GPT-4o from Azure OpenAI, Claude from Anthropic, or Llama from Meta. You do not need to deploy models yourself; the SDK routes calls through the Orchestration Service to SAP's partner foundation models.
+[**SAP Cloud SDK for AI**](https://github.com/SAP/ai-sdk-js) is SAP's official SDK for interacting with SAP AI Core. The SDK is not only available in TypeScript/JavaScript, but also in Python, Java and ABAP. It provides the `OrchestrationClient` to call any model available in Generative AI Hub through a unified API, no matter whether you're using GPT-4o from Azure OpenAI, Claude from Anthropic, or Llama from Meta. You do not need to deploy models yourself; the SDK routes calls through the Orchestration Service to SAP's partner foundation models.
 
 This combination is extremely powerful: LangGraph handles the agent workflow structure, while the SAP Cloud SDK for AI handles model access and authentication.
 
@@ -20,17 +20,7 @@ This combination is extremely powerful: LangGraph handles the agent workflow str
 
 ## Create a Basic Agent
 
-### Step 1: Set Up Your Project
-
-👉 Navigate to the starter project folder: [`/project/JavaScript/starter-project/`](/project/JavaScript/starter-project/)
-
-👉 Install dependencies:
-
-```bash
-npm install
-```
-
-### Step 2: Create the Agent State
+### Step 1: Create the Agent State
 
 LangGraph agents are built around **explicit state**: a typed object that you define, passed between nodes as the workflow progresses.
 
@@ -55,31 +45,48 @@ The trade-off is that you write a few extra lines of code to define the state an
 👉 Add the following type definitions:
 
 ```typescript
-/**
- * Agent state for LangGraph
- */
-export interface AgentState {
-  suspect_names: string;
-  appraisal_result?: string;
-  messages: Array<{
-    role: string;
-    content: string;
-  }>;
-}
+import { Annotation } from "@langchain/langgraph";
+
+export const AgentState = Annotation.Root({
+  suspect_names: Annotation<string>,
+  appraisal_result: Annotation<string | undefined>({
+    reducer: (_, update) => update,
+    default: () => undefined,
+  }),
+  messages: Annotation<Array<{ role: string; content: string }>>({
+    reducer: (current, update) => [...current, ...update],
+    default: () => [],
+  }),
+});
+
+export type AgentStateType = typeof AgentState.State;
 ```
 
 > 💡 **What's happening here?**
 >
-> - `AgentState` is the shared state object that flows through your LangGraph workflow
-> - `suspect_names` — input data passed in at the start; all nodes can read it
-> - `appraisal_result` — optional (`?`) because it is `undefined` until the appraiser node runs and writes to it
-> - `messages` — the conversation history, accumulated across all nodes
+> - `Annotation.Root` is the modern LangGraph way to define state.
+> - `suspect_names` — simple value channel; LangGraph replaces the old value with whatever the node returns
+> - `appraisal_result` — also a value channel, but with `default: () => undefined` so it doesn't need to be provided in the initial state; the reducer just takes the latest value
+> - `messages` — uses a **reducer**: instead of replacing the array, LangGraph _appends_ the new messages to the existing ones. The `default` sets the initial value to `[]`
+> - `AgentStateType` extracts the plain TypeScript type from the annotation so you can use it in node function signatures
 >
-> Each node returns only the fields it changed (`Partial<AgentState>`). LangGraph merges that partial update into the full state before calling the next node. Fields not mentioned in the return value remain exactly as they were.
+> `Partial<AgentStateType>` is a built-in TypeScript utility type that makes every field optional — so a node can return just `{ appraisal_result: "..." }` without providing the other fields. LangGraph merges that partial update into the full state before calling the next node. Fields not mentioned in the return value remain exactly as they were.
+>
+> You might wonder: why not just declare everything optional in `AgentStateType` itself? Because `AgentStateType` represents the **complete** state guaranteed to be available during the workflow — marking `suspect_names` optional there would force every node to guard against `undefined`, even though it is always populated before the graph runs. `Partial<>` is only used on **return types** to say "I'm updating some fields this turn", not to weaken the contract of the full state.
+> Example:
+>
+> ```typescript
+> // A node only returns the fields it changed — LangGraph merges the rest
+> async function appraiserNode(
+>   state: AgentStateType,
+> ): Promise<Partial<AgentStateType>> {
+>   return { appraisal_result: "Stolen items valued at $4,200." };
+> }
+> ```
 
-### Step 3: Create the OrchestrationClient
+### Step 2: Create the OrchestrationClient
 
-The `OrchestrationClient` from the SAP Cloud SDK for AI is how your agent communicates with LLMs in Generative AI Hub. The SAP Cloud SDK for AI handles authentication automatically using your environment variables, this is also true for the Python library.
+The `OrchestrationClient` from the SAP Cloud SDK for AI is how your agent communicates with LLMs through Generative AI Hub. The SAP Cloud SDK for AI handles authentication automatically using your environment variables, this is also true for the Python library.
 
 👉 Create a new file [`/project/JavaScript/starter-project/src/basicAgent.ts`](/project/JavaScript/starter-project/src/basicAgent.ts)
 
@@ -88,37 +95,35 @@ The `OrchestrationClient` from the SAP Cloud SDK for AI is how your agent commun
 ```typescript
 import "dotenv/config";
 import { OrchestrationClient } from "@sap-ai-sdk/orchestration";
-import type { AgentState } from "./types.js";
+import type { AgentStateType } from "./types.js";
 
-const orchestrationClient = new OrchestrationClient(
-  {
-    llm: {
-      model_name: process.env.MODEL_NAME!,
-      model_params: {
+const orchestrationClient = new OrchestrationClient({
+  promptTemplating: {
+    model: {
+      name: process.env.MODEL_NAME!,
+      params: {
         temperature: 0.7,
         max_tokens: 1000,
       },
     },
   },
-  { resourceGroup: process.env.RESOURCE_GROUP },
-);
+});
 ```
 
 > 💡 **Understanding the OrchestrationClient:**
 >
-> - `model_name: process.env.MODEL_NAME!` — reads the model name from your `.env` file. The `!` tells TypeScript you're certain the value exists (non-null assertion).
-> - `model_params` — configure the LLM behaviour: `temperature` controls creativity (0 = deterministic, 1 = creative), `max_tokens` limits response length.
-> - `resourceGroup` — the SAP AI Core resource group to use. This isolates your AI workloads.
+> - `promptTemplating.model.name` — reads the model name from your `.env` file. The `!` tells TypeScript you're certain the value exists (non-null assertion).
+> - `parameters` — configure the LLM behaviour: `temperature` controls creativity (0 = deterministic, 1 = creative), `max_tokens` limits response length.
 >
 > No API keys or URLs needed! The SDK automatically reads your SAP AI Core credentials from `AICORE_SERVICE_KEY` or the CF binding.
 > The approach of using `AICORE_SERVICE_KEY` within the `.env` file is only recommended for local testing, if you want to deploy your agent application to production use Cloud Foundry's service bindings through `VCAP`.
 
-### Step 4: Build the Agent Node
+### Step 3: Build the Agent Node
 
 In LangGraph, a **node** is an async function that represents one step in your workflow. Every node follows the same contract:
 
-- **Input**: the current `AgentState`, the full state object as it exists at that point in the graph
-- **Output**: `Promise<Partial<AgentState>>`, only the fields this node changed
+- **Input**: the current `AgentStateType`, the full state object as it exists at that point in the graph
+- **Output**: `Promise<Partial<AgentStateType>>`, only the fields this node changed
 
 LangGraph merges your partial return into the full state and passes it to the next node. This means:
 
@@ -156,7 +161,9 @@ flowchart TD
 👉 Add the appraiser node to your `basicAgent.ts`:
 
 ```typescript
-async function appraiserNode(state: AgentState): Promise<Partial<AgentState>> {
+async function appraiserNode(
+  state: AgentStateType,
+): Promise<Partial<AgentStateType>> {
   console.log("\n🔍 Appraiser Agent starting...");
 
   const response = await orchestrationClient.chatCompletion({
@@ -179,38 +186,34 @@ async function appraiserNode(state: AgentState): Promise<Partial<AgentState>> {
 
   return {
     appraisal_result: appraisalResult,
-    messages: [
-      ...state.messages,
-      { role: "assistant", content: appraisalResult },
-    ],
+    messages: [{ role: "assistant", content: appraisalResult }],
   };
 }
 ```
 
 > 💡 **Understanding the node:**
 >
-> - `Promise<Partial<AgentState>>` — the return type tells TypeScript (and LangGraph) that this function returns a promise of a partial state update. You only include the fields you changed; LangGraph merges them into the full state automatically. If you forget a field, it stays at its current value; it does not get reset.
+> - `Promise<Partial<AgentStateType>>` — the return type tells TypeScript (and LangGraph) that this function returns a promise of a partial state update. You only include the fields you changed; LangGraph merges them into the full state automatically.
 > - `orchestrationClient.chatCompletion({ messages })` — sends a conversation to the LLM as a list of messages. The `system` message sets the agent's persona and instructions. The `user` message is the actual question or task.
 > - `response.getContent()` — extracts the text content from the LLM response. The `??` operator provides a fallback if the result is `null` or `undefined` (for example, if the LLM returned nothing).
-> - `...state.messages` — the **spread operator** copies all existing messages into a new array, then appends the new one. This is necessary because you should never mutate `state` directly. Always return a new object. Mutating state can cause subtle bugs in multi-node graphs where LangGraph tracks changes between steps.
+> - `messages: [{ role: "assistant", ... }]` — the node only returns the **new** message. The reducer defined in `AgentState` automatically appends it to the existing array, so you never need to spread `state.messages` manually.
 
-### Step 5: Build the LangGraph Workflow
+### Step 4: Build the LangGraph Workflow
 
 Now you'll wire the node into a LangGraph `StateGraph`.
+
+👉 Add the following imports to the top of the `basicAgent.ts`:
+
+```typescript
+import { StateGraph, END, START } from "@langchain/langgraph";
+import { AgentState } from "./types.js";
+```
 
 👉 Add the following to your `basicAgent.ts`:
 
 ```typescript
-import { StateGraph, END, START } from "@langchain/langgraph";
-
 function buildGraph() {
-  const workflow = new StateGraph<AgentState>({
-    channels: {
-      suspect_names: null,
-      appraisal_result: null,
-      messages: null,
-    },
-  });
+  const workflow = new StateGraph(AgentState);
 
   workflow
     .addNode("appraiser", appraiserNode)
@@ -223,8 +226,9 @@ function buildGraph() {
 async function main() {
   const app = buildGraph();
 
-  const initialState: AgentState = {
+  const initialState: typeof AgentState.State = {
     suspect_names: "Sophie Dubois, Marcus Chen, Viktor Petrov",
+    appraisal_result: undefined,
     messages: [],
   };
 
@@ -241,18 +245,19 @@ main();
 
 > 💡 **Understanding the StateGraph:**
 >
-> - `channels` defines all the fields in your state. Setting a channel to `null` means LangGraph will use simple value replacement (last writer wins).
+> - `new StateGraph(AgentState)` — passes the annotation directly; LangGraph reads the channel definitions and reducers from it automatically
 > - `.addNode('appraiser', appraiserNode)` — registers the function as a node with the name `'appraiser'`
 > - `.addEdge(START, 'appraiser')` — connects the graph start to the appraiser node
 > - `.addEdge('appraiser', END)` — when the appraiser finishes, the workflow ends
 > - `.compile()` — validates the graph and returns an executable app
 > - `app.invoke(initialState)` — runs the workflow and returns the final state
 
-### Step 6: Run Your Agent
+### Step 5: Run Your Agent
 
 👉 Run your agent:
 
 > ☝️ Make sure you're in the starter project directory when running this command.
+> project/JavaScript/starter-project
 
 ```bash
 npx tsx src/basicAgent.ts
@@ -262,6 +267,36 @@ You should see:
 
 - The appraiser agent thinking through the task
 - A professional explanation of the appraisal process
+
+```bash
+user: starter-project $ npx tsx src/basicAgent.ts
+
+🔍 Appraiser Agent starting...
+✅ Appraisal complete
+
+==================================================
+Insurance Appraiser Report:
+==================================================
+An insurance appraiser assessing stolen artwork and valuables follows a systematic approach to determine the value and document the loss. Here’s a brief overview of the process:
+
+1. **Gathering Information**: The appraiser collects detailed information about the stolen items. This includes descriptions, provenance, purchase receipts, prior appraisals, photographs, and any available documentation that can help establish authenticity and ownership.
+
+2. **Condition Reports**: If the artworks or valuables had prior appraisals or condition reports, these documents are reviewed to understand the condition and value at the time they were last appraised.
+
+3. **Market Research**: The appraiser researches the current art market to determine the fair market value of the stolen items. This involves looking at recent sales of similar works, artist reputation, demand, and any changes in market trends that could affect the value.
+
+4. **Consultation with Experts**: Depending on the complexity and rarity of the stolen items, the appraiser may consult with other experts, such as art historians, gallery owners, or auction house specialists, to gain deeper insights into the item's value.
+
+5. **Use of Databases**: Appraisers often access databases of stolen art, such as the Art Loss Register, to ensure the items have been reported and to aid in recovery efforts.
+
+6. **Valuation Report**: The appraiser compiles a comprehensive valuation report that includes the assessed value of the stolen items, supported by documentation and analysis. This report is used by the insurance company to determine the payout for the claim.
+
+7. **Communication with Insurers**: The appraiser liaises with the insurance company to provide necessary documentation and answer any questions that may arise during the claims process.
+
+8. **Recommendations for Prevention**: Finally, the appraiser might offer recommendations to the client on how to improve security and documentation to prevent future thefts and facilitate easier claims processing.
+
+This methodical approach ensures that the valuation is fair, accurate, and defensible, both for the insurance company and the policyholder.
+```
 
 > 💡 `npx tsx` runs TypeScript files directly without compiling. `tsx` is a TypeScript Execute runtime; think of it as the Node.js equivalent of Python's `python` command for TypeScript files.
 
@@ -348,7 +383,7 @@ If you're coming from the Python version of this CodeJam, here's how the concept
 
 - **LangGraph** models agent workflows as stateful graphs; nodes are steps, edges are transitions
 - **AgentState** is the shared data structure passed between nodes; nodes return partial updates
-- **OrchestrationClient** connects your TypeScript code to any LLM in SAP Generative AI Hub
+- **OrchestrationClient** connects your TypeScript code to any LLM through SAP Generative AI Hub
 - **`response.getContent()`** extracts the text from an LLM response
 - **`Partial<AgentState>`** means nodes only need to return the fields they updated
 
