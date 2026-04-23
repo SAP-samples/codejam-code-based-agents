@@ -427,8 +427,16 @@ You integrated a grounding service tool with your agent that:
 
 ### The Grounding Flow
 
-```text
-User Query → LLM Reasoning → Agent Processing → Grounding Tool Call → Vector Search → Document Chunks → Agent Processing → LLM Reasoning → Output
+```mermaid
+flowchart LR
+    A[User Query] --> B[LLM Reasoning]
+    B --> C[Agent Processing]
+    C --> D[Grounding Tool Call]
+    D --> E[Vector Search]
+    E --> F[Document Chunks]
+    F --> G[Agent Processing]
+    G --> H[LLM Reasoning]
+    H --> I[Output]
 ```
 
 ### Why This Matters

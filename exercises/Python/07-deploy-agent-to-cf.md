@@ -486,25 +486,22 @@ cf logs investigator-crew-<YOUR NAME> --recent
 
 You now have a live, publicly reachable multi-agent system:
 
-```text
-Internet
-    │
-    ▼
-CF Router → investigator-crew-<YOUR NAME> (uvicorn / FastAPI)
-                │
-                ├── GET  /.well-known/agent-card.json  → AgentCard
-                ├── GET  /.well-known/agent.json        → AgentCard (backwards compat)
-                ├── GET  /health                        → {"status": "ok"}
-                └── POST /                              → A2A JSON-RPC handler
-                                                              │
-                                                              ▼
-                                                      InvestigatorExecutor
-                                                              │
-                                                              ▼
-                                                      InvestigatorCrew
-                                                      ├── Appraiser Agent (RPT-1)
-                                                      ├── Evidence Analyst (Grounding)
-                                                      └── Lead Detective (GPT-4o)
+```mermaid
+flowchart TD
+    Internet --> CFRouter["CF Router"]
+    CFRouter --> App["investigator-crew-YOUR-NAME\nuvicorn / FastAPI"]
+
+    App --> EP1["GET /.well-known/agent-card.json → AgentCard"]
+    App --> EP2["GET /.well-known/agent.json → AgentCard (backwards compat)"]
+    App --> EP3["GET /health → {status: ok}"]
+    App --> EP4["POST / → A2A JSON-RPC handler"]
+
+    EP4 --> Executor["InvestigatorExecutor"]
+    Executor --> Crew["InvestigatorCrew"]
+
+    Crew --> A1["Appraiser Agent (RPT-1)"]
+    Crew --> A2["Evidence Analyst (Grounding)"]
+    Crew --> A3["Lead Detective (GPT-4o)"]
 ```
 
 ### How CF Manages Your App
