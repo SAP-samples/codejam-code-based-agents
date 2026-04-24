@@ -1,0 +1,17 @@
+applications:
+  - name: investigator-crew-ts-Kevin-Riedelsheimer
+    memory: 512M
+    disk_quota: 1024M
+    instances: 1
+    buildpacks:
+      - nodejs_buildpack
+    health-check-type: http
+    health-check-http-endpoint: /health
+    timeout: 180
+    command: npm run start:server
+    services:
+      - generative-ai-hub
+    env:
+      MODEL_NAME: gpt-4o
+      RESOURCE_GROUP: ai-agents-codejam
+      GROUNDING_PIPELINE_ID: 0d3b132a-cbe1-4c75-abe7-adfbbab7e002

@@ -18,6 +18,9 @@
   ],
   "author": "Kevin Riedelsheimer",
   "license": "UNLICENSED",
+  "engines": {
+    "node": "22.x"
+  },
   "dependencies": {
     "@langchain/core": "1.1.39",
     "@langchain/langgraph": "1.2.8",
