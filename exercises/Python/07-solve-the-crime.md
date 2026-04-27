@@ -1,6 +1,13 @@
 # Use your AI Agents to solve the crime
 
-The only thing missing now is your **Lead Detective Agent**. This agent will then use the information retrieved from the other two agents to solve the crime and determine the value of the stolen items.
+The only thing missing now is your **Lead Detective Agent**. This agent will synthesize information from all three specialized agents to solve the crime and determine the value of the stolen items.
+
+You now have complete intelligence gathering capabilities:
+- 📊 **Financial predictions** from the Appraiser (RPT-1)
+- 📄 **Internal evidence** from the Evidence Analyst (Grounding Service)
+- 🌐 **External intelligence** from the Intelligence Researcher (Web Search)
+
+The Lead Detective will combine all three sources for a comprehensive conclusion.
 
 ## Build Your Lead Detective Agent
 
@@ -30,8 +37,13 @@ lead_detective_agent:
 ```yaml
 solve_crime:
   description: >
-    Find the thief among the suspects by activating the evidence analyst agent and instructing them to look for information on each of the three suspects
-    using the grounding tool. They should find information on alibis and motives and return a report for you to analyze.
+    Find the thief among the suspects by reviewing:
+    1. The insurance appraisal values from the appraiser agent
+    2. The internal evidence analysis from the evidence analyst agent
+    3. The web intelligence report from the intelligence researcher agent
+    
+    Synthesize all three sources to identify the culprit with high confidence.
+    Consider both internal evidence and external patterns/connections found online.
   expected_output: >
     The name of the thief and the total value of the stolen goods for the insurance.
   agent: lead_detective_agent
@@ -43,7 +55,7 @@ Now you'll add the Lead Detective Agent and its task to your investigator crew. 
 
 👉 Open [`/project/Python/starter-project/investigator_crew.py`](/project/Python/starter-project/investigator_crew.py)
 
-👉 **Inside the `InvestigatorCrew` class**, add the new agent and task methods **after** the existing `analyze_evidence_task` method and **before** the `@crew` method:
+👉 **Inside the `InvestigatorCrew` class**, add the new agent and task methods **after** the existing `research_criminal_network` method and **before** the `@crew` method:
 
 ```python
     @agent
@@ -57,25 +69,27 @@ Now you'll add the Lead Detective Agent and its task to your investigator crew. 
     def solve_crime(self) -> Task:
         return Task(
             config=self.tasks_config['solve_crime'],
-            context=[self.appraise_loss_task(), self.analyze_evidence_task()]  # 👈 Lead detective uses results from other tasks
+            context=[self.appraise_loss_task(), self.analyze_evidence_task(), self.research_criminal_network()]  # Lead detective uses all three sources
         )
 ```
 
-> 💡 **Where to place this code**: Add these methods inside the `InvestigatorCrew` class, after your `analyze_evidence_task()` method. The final order should be:
+> 💡 **Where to place this code**: Add these methods inside the `InvestigatorCrew` class, after your `research_criminal_network()` method. The final order should be:
 >
 > 1. `appraiser_agent()` method
 > 2. `appraise_loss_task()` method
 > 3. `evidence_analyst_agent()` method
 > 4. `analyze_evidence_task()` method
-> 5. **👈 Add `lead_detective_agent()` here**
-> 6. **👈 Add `solve_crime()` here**
-> 7. `crew()` method (keep at the end)
+> 5. `intelligence_researcher_agent()` method (from Exercise 06)
+> 6. `research_criminal_network()` method (from Exercise 06)
+> 7. **👈 Add `lead_detective_agent()` here**
+> 8. **👈 Add `solve_crime()` here**
+> 9. `crew()` method (keep at the end)
 
 > 💡 **Understanding the `context` parameter:**
 >
-> - `context=[self.appraise_loss_task(), self.analyze_evidence_task()]` tells CrewAI that the `solve_crime` task depends on the other two tasks
-> - The Lead Detective will receive the output from both the Loss Appraiser and Evidence Analyst
-> - This enables the detective to combine financial predictions with evidence analysis to solve the crime
+> - `context=[self.appraise_loss_task(), self.analyze_evidence_task(), self.research_criminal_network()]` tells CrewAI that the `solve_crime` task depends on all three prior tasks
+> - The Lead Detective receives output from the Appraiser, Evidence Analyst, AND Intelligence Researcher
+> - This enables comprehensive analysis using financial data, internal evidence, and web intelligence
 
 ### Step 4: Verify Crew Configuration
 
@@ -87,9 +101,9 @@ Your crew configuration should already be set from Exercise 04, but let's verify
     @crew
     def crew(self) -> Crew:
         return Crew(
-            agents=self.agents,  # Automatically collected by @agent decorator (all 3 agents)
-            tasks=self.tasks,    # Automatically collected by @task decorator (all 3 tasks)
-            process=Process.sequential,  # Tasks run in order: appraise → analyze → solve
+            agents=self.agents,  # Automatically collected by @agent decorator (all 4 agents)
+            tasks=self.tasks,    # Automatically collected by @task decorator (all 4 tasks)
+            process=Process.sequential,  # Tasks run in order: appraise → analyze → research → solve
             verbose=True  # Print detailed execution logs
         )
 ```
@@ -98,9 +112,9 @@ Your crew configuration should already be set from Exercise 04, but let's verify
 
 ### Step 5: Verify main.py (No Changes Needed)
 
-Your `main.py` from Exercise 04 should already be correct. It doesn't need any changes for Exercise 06!
+Your `main.py` from Exercise 04 should already be correct. It doesn't need any changes for Exercise 07!
 
-> 💡 **What's happening:** The same `main.py` that ran 2 agents in Exercise 04 will now automatically run all 3 agents (including your new Lead Detective). CrewAI collects all `@agent` and `@task` decorated methods automatically.
+> 💡 **What's happening:** The same `main.py` that ran 2 agents in Exercise 04 will now automatically run all 4 agents (Appraiser, Evidence Analyst, Intelligence Researcher, and Lead Detective). CrewAI collects all `@agent` and `@task` decorated methods automatically.
 
 👉 (Optional) Double-check your [`/project/Python/starter-project/main.py`](/project/Python/starter-project/main.py) has both required inputs:
 
@@ -153,11 +167,12 @@ python main.py
 python main.py
 ```
 
-> ⏱️ **This may take 2-5 minutes** as your agents:
+> ⏱️ **This may take 3-6 minutes** as your agents:
 >
-> 1. Search evidence documents for each suspect
-> 2. Predict values of stolen items using RPT-1
-> 3. Analyze findings and identify the culprit
+> 1. Search evidence documents for each suspect (Evidence Analyst)
+> 2. Predict values of stolen items using RPT-1 (Appraiser)
+> 3. Search the web for criminal patterns (Intelligence Researcher)
+> 4. Synthesize all findings and identify the culprit (Lead Detective)
 
 👉 Review the final output—who does your Lead Detective identify as the thief?
 
@@ -236,11 +251,12 @@ python main.py
 
 You created a complete multi-agent system where:
 
-1. **The Lead Detective Agent** orchestrates the investigation by delegating tasks
-2. **The Evidence Analyst Agent** retrieves and analyzes evidence from documents
-3. **The Loss Appraiser Agent** predicts financial values of stolen items
-4. **Agent Communication** flows through task delegation and result aggregation
-5. **Reasoning Integration** combines evidence, alibis, motives, and values to solve the crime
+1. **The Lead Detective Agent** orchestrates the investigation by synthesizing multiple sources
+2. **The Evidence Analyst Agent** retrieves and analyzes evidence from internal documents
+3. **The Intelligence Researcher Agent** gathers external intelligence via web search
+4. **The Loss Appraiser Agent** predicts financial values of stolen items
+5. **Agent Communication** flows through task delegation and result aggregation
+6. **Multi-Source Reasoning** combines internal evidence, web intelligence, and financial data to solve the crime
 
 ### The Investigation Flow
 
@@ -252,10 +268,14 @@ flowchart TD
     A --> E[Loss Appraisal]
     E --> F[RPT-1 Predictions]
     F --> G[Value Determination]
-    D --> H[Crime Resolution]
-    G --> H
-    H --> I[Suspect Identification]
-    I --> J[Final Report]
+    A --> H[Web Intelligence]
+    H --> I[Sonar-Pro Search]
+    I --> J[Pattern Analysis]
+    D --> K[Crime Resolution]
+    G --> K
+    J --> K
+    K --> L[Suspect Identification]
+    L --> M[Final Report]
 ```
 
 ### Why This Matters
@@ -290,14 +310,12 @@ In the following exercises, you will:
 2. ✅ Add custom tools to your agents so they can access external data
 3. ✅ Create a complete crew with multiple agents working together
 4. ✅ Integrate the Grounding Service for better reasoning and fact-checking
-5. ✅ Solve the museum art theft mystery using your fully-featured agent team (this exercise)
+5. ✅ Add web search for external intelligence gathering
+6. ✅ Solve the museum art theft mystery using your fully-featured agent team (this exercise)
+7. ➡️ [Deploy your agent to Cloud Foundry](./08-deploy-agent-to-cf.md) — make your agent available as a production service
+8. ➡️ [Integrate your agent into SAP Joule](./09-integrate-agent-into-joule.md) — expose your agent as a Joule capability
 
-Congratulations on completing the CodeJam! You've successfully built a sophisticated multi-agent AI system that can:
-
-- Analyze evidence from documents
-- Predict financial values using the SAP-RPT-1 model
-- Coordinate between multiple specialized agents
-- Solve complex real-world problems through collaborative reasoning
+If you'd like to go further, continue with the exercises above to deploy and integrate your agent into SAP's AI assistant.
 
 ---
 
