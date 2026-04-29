@@ -105,13 +105,15 @@ python3 -m venv ~/projects/codejam-code-based-agents/env --upgrade-deps
 
 Or use the variant that matches your OS/shell if not in BAS:
 
+_macOS / Linux_
+
 ```bash
-# macOS / Linux
 python3 -m venv ~/projects/codejam-code-based-agents/env --upgrade-deps
 ```
 
+_Windows (PowerShell)_
+
 ```powershell
-# Windows (PowerShell)
 python -m venv .\env --upgrade-deps
 ```
 
@@ -123,18 +125,21 @@ source ~/projects/codejam-code-based-agents/env/bin/activate
 
 Use the activation command for your environment:
 
+_macOS / Linux_
+
 ```bash
-# macOS / Linux
 source ~/projects/codejam-code-based-agents/env/bin/activate
 ```
 
+_Windows (PowerShell)_
+
 ```powershell
-# Windows (PowerShell)
 .\env\Scripts\Activate.ps1
 ```
 
+_Windows (Command Prompt)_
+
 ```cmd
-:: Windows (Command Prompt)
 .\env\Scripts\activate.bat
 ```
 
