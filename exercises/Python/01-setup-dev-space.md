@@ -56,7 +56,7 @@ https://github.com/SAP-samples/codejam-code-based-agents.git
 
 ```Python
 LITELLM_PROVIDER="sap"
-AICORE_AUTH_URL="https://#####.authentication.eu10.hana.ondemand.com/" + "oauth/token"
+AICORE_AUTH_URL="https://#####.authentication.eu10.hana.ondemand.com/oauth/token"
 AICORE_CLIENT_ID="sb-3c636fc2-d352-496a-851d-7a7d6005dcd4!b505946|aicore!b540"
 AICORE_CLIENT_SECRET="#####"
 AICORE_RESOURCE_GROUP="ai-agents-codejam"

@@ -118,19 +118,19 @@ if __name__ == "__main__":
 _macOS / Linux / BAS_
 
 ```bash
-python3 ./basic_agent.py
+python3 ./project/Python/starter-project/basic_agent.py
 ```
 
 _Windows (PowerShell)_
 
 ```powershell
-python .\basic_agent.py
+python .\project\Python\starter-project\basic_agent.py
 ```
 
 _Windows (Command Prompt)_
 
 ```cmd
-python .\basic_agent.py
+python .\project\Python\starter-project\basic_agent.py
 ```
 
 **From starter-project folder:**

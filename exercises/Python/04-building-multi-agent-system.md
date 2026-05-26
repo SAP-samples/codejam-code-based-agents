@@ -300,17 +300,17 @@ analyze_evidence_task:
 
 ```bash
 # macOS / Linux
-python3 ./main.py
+python3 ./project/Python/starter-project/main.py
 ```
 
 ```powershell
 # Windows (PowerShell)
-python .\main.py
+python .\project\Python\starter-project\main.py
 ```
 
 ```cmd
 # Windows (Command Prompt)
-python .\main.py
+python .\project\Python\starter-project\main.py
 ```
 
 **From starter-project folder:**
