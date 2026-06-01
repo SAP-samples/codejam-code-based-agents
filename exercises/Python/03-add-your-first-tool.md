@@ -383,7 +383,7 @@ def call_rpt1(payload: dict) -> str:
         return f"Error: {response.status_code} - {response.text}"
 ```
 
-### Step 2: Make the Function a Tool
+> 💡 This is a simplified version — you'll add proper error handling and JSON serialization in the next step.
 
 👉 Add the following line of code to your import section at the top of your `basic_agent.py` file:
 
