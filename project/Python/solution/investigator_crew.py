@@ -1,7 +1,6 @@
 from crewai import Agent, Crew, Task, Process
 from crewai.project import CrewBase, agent, task, crew
 from crewai.tools import tool
-from dotenv import load_dotenv
 from gen_ai_hub.proxy.native.sap.client import RPTClient
 
 import json  # For converting response data to JSON format
@@ -38,7 +37,6 @@ def call_rpt1(payload: dict) -> str:
     try:
         response = rpt1_client.predict(body=payload, model_name="sap-rpt-1-large")
         if response:
-            import json
             return json.dumps(response.json(), indent=2)
         else:
             return f"Error {response.status_code}: {response.text}"
