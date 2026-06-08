@@ -8,11 +8,11 @@ The full investigation system is almost ready. In this exercise you'll refine th
 
 In LangGraph, the Lead Detective **is** the supervisor you already built. There is no new agent class or additional code to write — the architecture is complete. What makes the difference between a vague report and a correct accusation is the **quality of the Lead Detective's prompt**.
 
-In Exercise 04 the prompt was intentionally minimal:
+In Exercise 04 the `_lead_detective_prompt` function ends with a generic instruction:
 
-> *"For insurance valuations, delegate to the appraiser_agent. For evidence retrieval, delegate to the evidence_analyst_agent. Synthesize their findings."*
+> *"Provide a comprehensive summary of the case."*
 
-This is enough to make the system run, but the Lead Detective may stop short of naming a suspect, or jump to conclusions without cross-referencing evidence. In this exercise you'll sharpen it.
+This is enough to make the system run, but the Lead Detective may stop short of naming a suspect, or jump to conclusions without cross-referencing evidence. In this exercise you'll sharpen that closing instruction.
 
 ---
 
@@ -20,33 +20,32 @@ This is enough to make the system run, but the Lead Detective may stop short of 
 
 👉 Open [`/project/Python-LangGraph/starter-project/config/agents.py`](/project/Python-LangGraph/starter-project/config/agents.py)
 
-👉 Update the `LEAD_DETECTIVE` entry with a more specific prompt:
+👉 Update the `_lead_detective_prompt` function in `config/agents.py` with a more specific closing instruction:
 
 ```python
-LEAD_DETECTIVE = {
-    "prompt": (
+def _lead_detective_prompt(appraisal_result: str, evidence_analysis: str, suspect_names: str) -> str:
+    return (
         "You are the Lead Detective coordinating an art theft investigation. "
-        "You MUST complete ALL of the following before writing your final report:\n"
-        "1. Delegate insurance valuations to appraiser_agent — instruct it to call call_rpt1 with the full payload.\n"
-        "2. Delegate suspect investigation to evidence_analyst_agent — instruct it to search for alibis, motives, "
-        "and access records for Sophie Dubois, Marcus Chen, and Viktor Petrov using call_grounding_service.\n"
-        "Only after receiving results from BOTH agents should you synthesize a final report that:\n"
-        "- Names the most likely thief and explains the evidence supporting that conclusion\n"
-        "- Notes any alibis or evidence that clears other suspects\n"
-        "- States the total insured value of the stolen goods"
-    ),
-}
+        "You have received the following information from your team:\n\n"
+        f"1. INSURANCE APPRAISAL:\n{appraisal_result}\n\n"
+        f"2. EVIDENCE ANALYSIS:\n{evidence_analysis}\n\n"
+        f"3. SUSPECTS: {suspect_names}\n\n"
+        "Based on all the evidence and analysis, you MUST:\n"
+        "- Name the most likely thief and explain the evidence supporting that conclusion\n"
+        "- Note any alibis or evidence that clears the other suspects\n"
+        "- State the total insured value of the stolen goods\n"
+        "- Provide a comprehensive summary of the case."
+    )
 ```
 
 > 💡 **What changed and why:**
 >
 > | Before | After |
 > |---|---|
-> | "Synthesize their findings" | "Name the thief and explain the evidence" |
-> | No ordering requirement | "MUST complete BOTH before writing report" |
-> | No output structure | Explicit bullet points for the expected conclusion |
+> | "Provide a comprehensive summary of the case." | "You MUST name the most likely thief…" |
+> | No ordering requirement | Explicit bullet points for the expected conclusion |
 >
-> The LLM reads this prompt before every decision. Specificity reduces the chance it writes a vague report without committing to a conclusion.
+> The LLM reads this prompt before writing its final report. Specificity reduces the chance it writes a vague summary without committing to a conclusion.
 
 ---
 
@@ -101,19 +100,13 @@ The Lead Detective's conclusion depends entirely on the quality of the evidence 
 
 ```mermaid
 flowchart TD
-    A[main.py\nHumanMessage] --> LD[Lead Detective\nSupervisor]
-    LD -->|1 delegate valuation| AP[appraiser_agent]
-    AP -->|call_rpt1| RPT[SAP RPT-1 Model]
-    RPT -->|predictions| AP
-    AP -->|insurance values| LD
-    LD -->|2 delegate suspects| EA[evidence_analyst_agent]
-    EA -->|call_grounding_service| GS[SAP Grounding Pipeline]
-    GS -->|document chunks| EA
-    EA -->|evidence report| LD
-    LD -->|3 synthesize| FR[Final Report\nThief named\nTotal value]
+    A[main.py\ninitial state] --> AP[appraiser_node\ncall_rpt1 + LLM]
+    AP -->|appraisal_result in state| EA[evidence_analyst_node\ncall_grounding_service]
+    EA -->|evidence_analysis in state| LD[lead_detective_node\nLLM synthesis]
+    LD --> FR[END\nfinal_conclusion\nThief named\nTotal value]
 ```
 
-The Lead Detective waits for both results before writing the final report. Its prompt is the only thing controlling how well it reasons — no additional code is needed.
+The Lead Detective node receives `appraisal_result` and `evidence_analysis` from the shared state written by the earlier nodes. Its prompt is the only thing controlling how well it reasons — no additional code is needed.
 
 ---
 
