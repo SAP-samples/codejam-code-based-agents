@@ -19,7 +19,6 @@ from a2a.types import (
     AgentSkill,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from langchain_core.messages import HumanMessage
 
 from investigator_graph import investigator_graph
 from payload import payload
@@ -54,15 +53,16 @@ class InvestigatorExecutor(AgentExecutor):
         result = await loop.run_in_executor(
             None,
             lambda: investigator_graph.invoke({
-                "messages": [HumanMessage(content=(
-                    f"{user_request} "
-                    f"Investigate the following suspects: {suspect_names}. "
-                    f"Use this payload for insurance valuations: {payload}"
-                ))]
+                "payload": payload,
+                "suspect_names": suspect_names,
+                "appraisal_result": None,
+                "evidence_analysis": None,
+                "final_conclusion": None,
+                "messages": [],
             }),
         )
 
-        final_text = result["messages"][-1].content
+        final_text = result["final_conclusion"] or "Investigation completed but no conclusion was reached."
 
         # Publish the graph's final report as a named artifact.
         await event_queue.enqueue_event(

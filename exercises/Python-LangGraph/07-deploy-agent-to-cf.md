@@ -70,7 +70,6 @@ from a2a.types import (
     AgentSkill,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from langchain_core.messages import HumanMessage
 
 from investigator_graph import investigator_graph
 from payload import payload
@@ -118,15 +117,16 @@ class InvestigatorExecutor(AgentExecutor):
         result = await loop.run_in_executor(
             None,
             lambda: investigator_graph.invoke({
-                "messages": [HumanMessage(content=(
-                    f"{user_request} "
-                    f"Investigate the following suspects: {suspect_names}. "
-                    f"Use this payload for insurance valuations: {payload}"
-                ))]
+                "payload": payload,
+                "suspect_names": suspect_names,
+                "appraisal_result": None,
+                "evidence_analysis": None,
+                "final_conclusion": None,
+                "messages": [],
             }),
         )
 
-        final_text = result["messages"][-1].content
+        final_text = result["final_conclusion"] or "Investigation completed but no conclusion was reached."
 
         # 4. Send the result back as an artifact
         await event_queue.enqueue_event(
@@ -173,8 +173,10 @@ class InvestigatorExecutor(AgentExecutor):
 > **Step 3 — Run the graph in a thread**
 > `investigator_graph.invoke()` is a **synchronous, blocking** call — LangGraph's invoke is not async-native. Calling it directly inside an `async` function would freeze the entire server. `run_in_executor` moves it to a thread pool, keeping the event loop free.
 >
+> The state passed to `invoke()` must include all required `AgentState` fields — `payload`, `suspect_names`, and the `None` placeholders for results the graph will fill in. The `user_request` parsed from the incoming message is not a state field; it is used only to set context via `suspect_names`.
+>
 > **Step 4 — Return the result as an artifact**
-> The graph returns a state dict with a `messages` list. We take the last message (the Lead Detective's final report) and wrap it in an `Artifact`.
+> The graph stores the Lead Detective's final report in `result["final_conclusion"]`. We wrap it in an `Artifact` and send it back to the caller.
 >
 > **Step 5 — Signal `completed`**
 > `final=True` closes the task. The caller knows it can stop waiting.
@@ -534,7 +536,7 @@ flowchart TD
 - **A2A** is an open protocol that lets agents communicate over HTTP regardless of framework
 - **`AgentExecutor`** is the single class you implement — it bridges A2A tasks to your LangGraph graph
 - **`run_in_executor`** is essential: `investigator_graph.invoke()` is synchronous, so you must offload it to a thread to keep the async server responsive
-- **`result["messages"][-1].content`** extracts the Lead Detective's final report from the graph's state
+- **`result["final_conclusion"]`** extracts the Lead Detective's final report from the graph's state
 - **`manifest.yml`** is the single source of truth for deployment — memory, buildpack, command, service bindings
 - **`.cfignore`** prevents sensitive files (`.env`) from being uploaded to CF
 - **`VCAP_APPLICATION`** provides the public URL at runtime — the Agent Card picks it up automatically
