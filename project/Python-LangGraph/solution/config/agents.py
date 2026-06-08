@@ -27,12 +27,10 @@ def _lead_detective_prompt(appraisal_result: str, evidence_analysis: str, suspec
         f"1. INSURANCE APPRAISAL:\n{appraisal_result}\n\n"
         f"2. EVIDENCE ANALYSIS:\n{evidence_analysis}\n\n"
         f"3. SUSPECTS: {suspect_names}\n\n"
-        "Based on all the evidence and analysis, determine:\n"
-        "- Who is the most likely culprit?\n"
-        "- What evidence supports this conclusion?\n"
-        "- What was their motive and opportunity?\n"
-        "- Summarise the insurance appraisal values of the stolen artworks.\n"
-        "- Calculate the total estimated insurance value of the stolen items.\n"
+        "Based on all the evidence and analysis, you MUST:\n"
+        "- Name the most likely thief and explain the evidence supporting that conclusion\n"
+        "- Note any alibis or evidence that clears the other suspects\n"
+        "- State the total insured value of the stolen goods\n"
         "- Provide a comprehensive summary of the case."
     )
 
