@@ -138,7 +138,7 @@ _Windows (Command Prompt)_
 👉 Install LangGraph, LangChain, LiteLLM, and python-dotenv using the following `pip install` command:
 
 ```bash
-pip install langgraph langchain-core langchain-litellm litellm==1.82.6 python-dotenv
+pip install --require-virtualenv langgraph langchain-core langchain-litellm litellm==1.82.6 python-dotenv
 ```
 
 > In case you see a message in BAS asking you to create an isolated environment, click on `Don't show again`.
