@@ -10,9 +10,11 @@ This repository contains the material for the "Build code-based AI Agents on SAP
 
 In this CodeJam, you will learn how to build state-of-the-art AI agents using Generative AI Hub, Python and JavaScript. You will also gain the skills to create custom tools for your agents, including leveraging the SAP-RPT-1 model and SAP's grounding service. Finally, you will deploy your agents to BTP.
 
-For this CodeJam you will use:
+For this CodeJam you will use one of:
 
 - Python, CrewAI and LiteLLM
+- Python, LangGraph and LiteLLM
+- TypeScript, LangGraph and SAP Cloud SDK for AI
 
 You will learn more about the following SAP technologies:
 
@@ -36,18 +38,41 @@ For this CodeJam, the Developer Advocates provide a fully functioning system. Yo
 
 ## Exercises
 
-<!-- In this CodeJam you can choose between two different technology stacks. Both are relevant for working with Agents and AI solutions, the differences are the progamming language and the frameworks being used for building the AI agents.
+For this CodeJam you can choose between three different technology stacks. Both Python options use the same SAP AI services — they differ in the agent framework. The JavaScript option uses TypeScript and LangGraph.
 
-If you are unsure on which path you should choose, ask the instructor for guidance.
- -->
-- [START THE EXERCISES](https://github.com/SAP-samples/codejam-code-based-agents/blob/main/exercises/readme.md)
+If you are unsure which path to choose, ask the instructor for guidance.
+
+### Python (CrewAI + LiteLLM)
+
 - [Exercise 00 - Understanding Generative AI Hub in SAP AI Core](./exercises/Python/00-understanding-genAI-hub.md)
-- [Exercise 01 - Setup SAP Business Application Studio and your personald development space](./exercises/Python/01-setup-dev-space.md)
+- [Exercise 01 - Setup SAP Business Application Studio and your personal development space](./exercises/Python/01-setup-dev-space.md)
 - [Exercise 02 - Build your first AI Agent](./exercises/Python/02-build-a-basic-agent.md)
 - [Exercise 03 - Build your first agent tool](./exercises/Python/03-add-your-first-tool.md)
 - [Exercise 04 - Building a multi-agent system](./exercises/Python/04-building-multi-agent-system.md)
 - [Exercise 05 - Add the Grounding service](./exercises/Python/05-add-the-grounding-service.md)
 - [Exercise 06 - Use your AI Agents to solve the crime](./exercises/Python/06-solve-the-crime.md)
+
+### Python (LangGraph + LiteLLM)
+
+- [Exercise 00 - Understanding Generative AI Hub in SAP AI Core](./exercises/Python-LangGraph/00-understanding-genAI-hub.md)
+- [Exercise 01 - Setup SAP Business Application Studio and your personal development space](./exercises/Python-LangGraph/01-setup-dev-space.md)
+- [Exercise 02 - Build your first AI Agent](./exercises/Python-LangGraph/02-build-a-basic-agent.md)
+- [Exercise 03 - Build your first agent tool](./exercises/Python-LangGraph/03-add-your-first-tool.md)
+- [Exercise 04 - Building a multi-agent system](./exercises/Python-LangGraph/04-building-multi-agent-system.md)
+- [Exercise 05 - Add the Grounding service](./exercises/Python-LangGraph/05-add-the-grounding-service.md)
+- [Exercise 06 - Use your AI Agents to solve the crime](./exercises/Python-LangGraph/06-solve-the-crime.md)
+- [Exercise 07 - Deploy your agent to Cloud Foundry with A2A](./exercises/Python-LangGraph/07-deploy-agent-to-cf.md)
+
+### JavaScript (LangGraph + SAP Cloud SDK for AI)
+
+- [Exercise 00 - Understanding Generative AI Hub in SAP AI Core](./exercises/JavaScript/00-understanding-genAI-hub.md)
+- [Exercise 01 - Setup SAP Business Application Studio and your personal development space](./exercises/JavaScript/01-setup-dev-space.md)
+- [Exercise 02 - Build your first AI Agent](./exercises/JavaScript/02-build-a-basic-agent.md)
+- [Exercise 03 - Build your first agent tool](./exercises/JavaScript/03-add-your-first-tool.md)
+- [Exercise 04 - Building a multi-agent system](./exercises/JavaScript/04-building-multi-agent-system.md)
+- [Exercise 05 - Add the Grounding service](./exercises/JavaScript/05-add-the-grounding-service.md)
+- [Exercise 06 - Use your AI Agents to solve the crime](./exercises/JavaScript/06-solve-the-crime.md)
+- [Exercise 07 - Deploy your agent to Cloud Foundry with A2A](./exercises/JavaScript/07-deploy-agent-to-cf-ts.md)
 
 The instructor will start you on the first exercise. Proceed to the next exercise once the instructor tells you to.
 
