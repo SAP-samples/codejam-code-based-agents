@@ -114,7 +114,7 @@ flowchart TD
     C -->|"LangGraph merges into state"| D
 ```
 
-👉 Add the appraiser node below your model initialization:
+👉 Add the appraiser node below after the AgentState class definition:
 
 ```python
 def appraiser_node(state: AgentState) -> dict:
