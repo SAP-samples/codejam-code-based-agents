@@ -19,10 +19,10 @@ In LangGraph, **tools are plain Python functions** — there is no special decor
 👉 If you haven't installed the SAP AI SDK yet, run:
 
 ```bash
-pip install sap-ai-sdk-gen
+pip install --require-virtualenv sap-ai-sdk-gen
 ```
 
-> 💡 This installs the [Cloud SDK for AI (Python)](https://help.sap.com/doc/generative-ai-hub-sdk/CLOUD/en-US/_reference/README_sphynx.html), which provides tools for document grounding, embeddings, retrieval, as well as RPT-1 predictions.
+> 💡 This installs the [SAP Cloud SDK for AI (Python) - generative](https://help.sap.com/doc/generative-ai-hub-sdk/CLOUD/en-US/_reference/README_sphynx.html), which provides tools for document grounding, embeddings, retrieval, as well as RPT-1 predictions.
 
 ---
 
@@ -149,7 +149,7 @@ def call_rpt1(payload: dict) -> str:
 👉 Update your `appraiser_node` to call `call_rpt1` directly and pass the result to the LLM:
 
 ```python
-# Initialize the LLM
+# Initialize the LLM via LiteLLM pointing to SAP Generative AI Hub
 model = ChatLiteLLM(model="sap/anthropic--claude-4.5-opus", temperature=0)
 
 system_prompt = """You are an experienced Stolen Goods Loss Appraiser specializing in fine art and valuables.
