@@ -78,9 +78,9 @@ Your goal is to assess the value of stolen items and provide a professional insu
 You provide detailed assessments based on your expertise and rely strictly on evidence — you never guess values."""
 ```
 
-> 💡 **Understanding the model string:**
+> 💡 **Understanding the `model` string:**
 >
-> The format is `provider/model-name`. `sap` tells LiteLLM to route through SAP Generative AI Hub's orchestration service, and `anthropic--claude-4.5-opus` is the model name as registered in your resource group. Temperature `0` makes the model deterministic — useful for consistent appraisals.
+> The format is `provider/model-name`. Setting the `provider` to `sap` tells LiteLLM to route requests through the SAP Generative AI Hub orchestration service. The `model-name` (here set to `anthropic--claude-4.5-opus`) identifies the model deployment registered in your resource group. Setting `temperature=0` makes the model's outputs more deterministic, which is useful when you want consistent appraisal reports.
 
 ### Step 3: Build the Agent Node
 
