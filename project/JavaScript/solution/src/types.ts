@@ -10,6 +10,20 @@ export interface PredictionConfig {
   target_columns: PredictionTargetColumn[];
 }
 
+// Row shape as stored in artworks.db — NULL means value is unknown (will become '[PREDICT]')
+export interface ArtworkRow {
+  ITEM_ID: string;
+  ITEM_NAME: string;
+  ARTIST: string;
+  ACQUISITION_DATE: string;
+  INSURANCE_VALUE: number | null;
+  ITEM_CATEGORY: string | null;
+  DIMENSIONS: string;
+  CONDITION_SCORE: number;
+  RARITY_SCORE: number;
+  PROVENANCE_CLARITY: number;
+}
+
 export interface StolenItem {
   ITEM_ID: string;
   ITEM_NAME: string;
@@ -30,17 +44,32 @@ export interface RPT1Payload {
 }
 
 export const AgentState = Annotation.Root({
-  payload: Annotation<RPT1Payload>,
   suspect_names: Annotation<string>,
   appraisal_result: Annotation<string | undefined>({
     reducer: (_, update) => update,
     default: () => undefined,
   }),
+  appraisal_success: Annotation<boolean>({
+    reducer: (_, update) => update,
+    default: () => false,
+  }),
   evidence_analysis: Annotation<string | undefined>({
     reducer: (_, update) => update,
     default: () => undefined,
   }),
+  evidence_count: Annotation<number>({
+    reducer: (_, update) => update,
+    default: () => 0,
+  }),
   final_conclusion: Annotation<string | undefined>({
+    reducer: (_, update) => update,
+    default: () => undefined,
+  }),
+  confidence_score: Annotation<number>({
+    reducer: (_, update) => update,
+    default: () => 0,
+  }),
+  witness_statement: Annotation<string | undefined>({
     reducer: (_, update) => update,
     default: () => undefined,
   }),

@@ -1,458 +1,558 @@
-# Building a Multi-Agent System
+# Building a Parallel Multi-Agent System
 
-## Structure Your Agent Code
-
-Now that you know how to build a single agent with LangGraph and the SAP Cloud SDK for AI, let's structure the code for a multi-agent system. LangGraph recommends keeping agent configuration close to code.
-
-> "LangGraph gives you full programmatic control over your agent graph. Configuration lives in code, making it type-safe, refactorable, and IDE-friendly." — LangGraph philosophy
-
-Unlike CrewAI's YAML-first approach, in LangGraph you define agent behaviour directly in TypeScript. This means:
-
-- No separate config files to keep in sync with your code
-- Full TypeScript type checking on your agent definitions
-- IDE autocomplete and refactoring across agent configuration
-
-👉 Create the following new files in the [`src`](/project/JavaScript/starter-project/src/) folder:
-
-- [`agentConfigs.ts`](/project/JavaScript/starter-project/src/agentConfigs.ts) — agent system prompts
-- [`investigationWorkflow.ts`](/project/JavaScript/starter-project/src/investigationWorkflow.ts) — the LangGraph workflow class
-- [`main.ts`](/project/JavaScript/starter-project/src/main.ts) — the entry point
+In the previous exercise you gave the Appraiser a real database lookup and an RPT-1 tool. Now you will restructure the entire workflow: the Appraiser and the Evidence Analyst will run **in parallel**, join at a new Lead Detective node, and every node will emit structured JSON logs so you can observe the execution at a glance.
 
 ---
 
-## Define Agent Configurations
+## Overview
 
-Agent configurations in LangGraph are TypeScript objects. They can contain static strings or functions that generate system prompts dynamically based on runtime data.
+In this exercise you will:
 
-### Create agentConfigs.ts
+1. Restructure the graph from sequential to parallel fork (START → Appraiser AND START → Evidence Analyst)
+2. Add three conditional routing functions that decide where the graph goes after each node
+3. Add a `leadDetectiveNode` with an `OrchestrationClient` and Zod schema validation
+4. Add structured JSON logging to every node
+5. Enable LangSmith tracing via environment variables
+6. Set `recursionLimit: 10` on the `app.invoke` call
 
-👉 Open [`/project/JavaScript/starter-project/src/agentConfigs.ts`](/project/JavaScript/starter-project/src/agentConfigs.ts) and add:
+---
+
+## Prerequisites
+
+- Exercise 03 is complete: `lookupArtworksTool`, `buildRPT1Payload`, and `callRPT1Tool` are exported from `tools.ts`
+- `AgentState` has the `appraisal_success` field added in Exercise 03
+- `npx tsx src/main.ts` runs without TypeScript errors
+
+---
+
+## Step 1 — Enable LangSmith Tracing
+
+LangSmith is LangChain's tracing platform. When the environment variables below are present, LangGraph automatically uploads a trace of every graph run — nodes executed, state transitions, timing — with zero code changes.
+
+👉 Open your `.env` file and add (or uncomment) these four lines:
+
+```
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
+LANGCHAIN_API_KEY=<your key from smith.langchain.com>
+LANGCHAIN_PROJECT=codejam-investigation
+```
+
+> 💡 **Zero-code tracing** — LangGraph reads these variables at startup. No SDK import, no wrapper, no instrumentation code is required. Every graph run you do for the rest of the workshop will appear in the LangSmith UI automatically, including the parallel branches you are about to build.
+>
+> Sign up for a free account at [smith.langchain.com](https://smith.langchain.com) and create a project named `codejam-investigation`.
+
+---
+
+## Step 2 — Add `evidence_count` to `AgentState`
+
+The routing function that guards the Evidence Analyst exit needs to know whether any evidence was found. Add this field to `AgentState` in `types.ts`:
+
+```typescript
+evidence_count: Annotation<number>({
+  reducer: (_, update) => update,
+  default: () => 0,
+}),
+```
+
+The full `AgentState` now has these fields: `suspect_names`, `appraisal_result`, `appraisal_success`, `evidence_analysis`, `evidence_count`, `final_conclusion`, `confidence_score`, and `messages`.
+
+Also add `confidence_score` if it is not already present — the Lead Detective node writes its confidence into this field:
+
+```typescript
+confidence_score: Annotation<number>({
+  reducer: (_, update) => update,
+  default: () => 0,
+}),
+```
+
+---
+
+## Step 3 — Add Agent Configuration to `agentConfigs.ts`
+
+System prompts for the Lead Detective are long and would clutter `investigationWorkflow.ts`. Keep them in a separate file for clarity.
+
+👉 Create [`/project/JavaScript/starter-project/src/agentConfigs.ts`](/project/JavaScript/starter-project/src/agentConfigs.ts):
 
 ```typescript
 export const AGENT_CONFIGS = {
   evidenceAnalyst: {
-    systemPrompt: (suspectNames: string) => `You are an Evidence Analyst.
-    You are a meticulous forensic analyst who specializes in connecting dots between various pieces of evidence.
-    You have access to document repositories and excel at extracting relevant information from complex data sources.
+    systemPrompt: (suspectNames: string) => `You are an Evidence Analyst on a high-profile art theft case.
+    You are a meticulous forensic analyst who specializes in connecting dots between evidence.
 
-    Your goal: Analyze all available evidence and documents to identify patterns and connections between suspects and the crime
+    Your goal: Analyze all available evidence to identify patterns and connections between suspects and the crime.
 
-    You have access to the call_grounding_service tool to search through evidence documents.
-    Analyze the suspects: ${suspectNames}
+    You have access to three tools:
+    - search_documents(query): Semantic search through the evidence document repository
+    - list_suspects(): Returns the three suspects with known aliases and roles
+    - lookup_timeline(dateRange): Filters evidence by a specific date range
 
-    Search for evidence related to each suspect and identify connections to the crime.`,
+    Suspects: ${suspectNames}
+
+    Use the tools strategically — start by listing suspects to confirm aliases, then search
+    for evidence per suspect, then cross-reference the timeline around the theft date.`,
   },
   leadDetective: {
     systemPrompt: (
       appraisalResult: string,
       evidenceAnalysis: string,
       suspectNames: string,
-    ) =>
-      `You are the lead detective on this high-profile art theft case. With years of
-                experience solving complex crimes, you excel at synthesizing information from
-                multiple sources and identifying the culprit based on evidence and expert analysis.
+      witnessStatement?: string,
+    ) => `You are the lead detective on this high-profile art theft case.
+      You excel at synthesizing information from multiple sources and identifying the culprit.
 
-      Your goal: Synthesize all findings from the team to identify the most likely suspect and build a comprehensive case
+      Your goal: Identify the most likely culprit and calculate the total insurance loss.
 
-      You have received the following information from your team:
+      INSURANCE APPRAISAL:
+      ${appraisalResult}
 
-      1. INSURANCE APPRAISAL: ${appraisalResult}
-      2. EVIDENCE ANALYSIS: ${evidenceAnalysis}
-      3. SUSPECTS: ${suspectNames}
+      EVIDENCE ANALYSIS:
+      ${evidenceAnalysis}
 
-      Based on all the evidence and analysis, determine:
-        - Who is the most likely culprit?
-        - What evidence supports this conclusion?
-        - What was their motive and opportunity?
-        - Summarise the insurance appraisal values of the stolen artworks.
-        - Calculate the total estimated insurance value of the stolen items based on the appraisal results.
-        - Provide a comprehensive summary of the case.
+      SUSPECTS: ${suspectNames}
+      ${witnessStatement ? `\nNEW WITNESS STATEMENT (just received — factor this into your analysis):\n${witnessStatement}` : ""}
 
-      Be thorough and analytical in your conclusion.`,
+      Assess confidence honestly. If evidence is ambiguous or contradictory, reflect that in a low confidence score.
+      A confidence score below 0.7 means you should NOT commit to a verdict.`,
   },
 };
 ```
 
-> 💡 **Understanding the configuration:**
->
-> - System prompts are **functions** (not static strings) so they can incorporate runtime data like suspect names and prior agent results. TypeScript's template literals (`` `...${variable}...` ``) make this clean and readable.
-> - This is the TypeScript equivalent of CrewAI's `agents.yaml` and `tasks.yaml` — but type-safe, and co-located with the code that uses it.
-> - The `leadDetective.systemPrompt` function takes three arguments: the appraisal result, evidence analysis, and suspect names. This is how inter-agent communication works in LangGraph: one node's output becomes another node's input via shared state.
->   These system prompts will be read in later code implementations of the agents themselves. The extra file is to have a clearer structure and comply to the seperation of concerns paradigm.
+> 💡 **System prompts as functions** — The `leadDetective.systemPrompt` function takes the appraisal result, evidence analysis, suspect names, and an optional witness statement as arguments. TypeScript template literals make it easy to interpolate runtime data. This is the typed, co-located equivalent of CrewAI's `agents.yaml` and `tasks.yaml`.
 
 ---
 
-## Build the Investigation Workflow
+## Step 4 — Add `evidence_analyst` Placeholder Node
 
-The `InvestigationWorkflow` class encapsulates the entire LangGraph workflow: the graph definition, all agent nodes, and the execution logic.
+You will replace this with the real grounding-backed implementation in Exercise 05. For now, add a placeholder that produces stub output so the graph can run end-to-end.
 
-### Step 1: Create the AgentState
-
-👉 Update your `types.ts` file to include all state fields needed for the multi-agent workflow:
+👉 Add this method to `InvestigationWorkflow`:
 
 ```typescript
-import { Annotation } from "@langchain/langgraph";
+private async evidenceAnalystNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
+  console.log(JSON.stringify({ event: "node_start", node: "evidence_analyst", suspects: state.suspect_names }));
 
-export const AgentState = Annotation.Root({
-  payload: Annotation<RPT1Payload>,
-  suspect_names: Annotation<string>,
-  appraisal_result: Annotation<string | undefined>({
-    reducer: (_, update) => update,
-    default: () => undefined,
-  }),
-  evidence_analysis: Annotation<string | undefined>({
-    reducer: (_, update) => update,
-    default: () => undefined,
-  }),
-  final_conclusion: Annotation<string | undefined>({
-    reducer: (_, update) => update,
-    default: () => undefined,
-  }),
-  messages: Annotation<Array<{ role: string; content: string }>>({
-    reducer: (current, update) => [...current, ...update],
-    default: () => [],
-  }),
-});
+  try {
+    const suspects = state.suspect_names.split(",").map((s) => s.trim());
+    const evidenceResults: string[] = [];
 
-export type AgentStateType = typeof AgentState.State;
-```
+    for (const suspect of suspects) {
+      // Placeholder — replaced with real grounding tool in Exercise 05
+      evidenceResults.push(`Evidence for ${suspect}: No evidence documents connected yet.`);
+    }
 
-> 💡 The fields without a `default` (`payload`, `suspect_names`) are required when invoking the graph. Fields with `default: () => undefined` start as `undefined` and get filled in as each agent node runs. The `final_conclusion` field won't be set until the lead detective runs.
+    const evidenceAnalysis =
+      `Evidence Analysis Complete:\n\n${evidenceResults.join("\n\n")}\n\n` +
+      `Summary: Analyzed evidence for all suspects: ${state.suspect_names}`;
 
-### Step 2: Create the Workflow Class
+    console.log(JSON.stringify({ event: "node_complete", node: "evidence_analyst", success: true, documentCount: evidenceResults.length }));
 
-👉 Add the following to `project/JavaScript/starter-project/src/investigationWorkflow.ts`:
-
-```typescript
-import { StateGraph, END, START } from "@langchain/langgraph";
-import { AgentState } from "./types.js";
-import type { AgentStateType, RPT1Payload } from "./types.js";
-
-export class InvestigationWorkflow {
-  private graph;
-
-  private buildGraph() {
-    const workflow = new StateGraph(AgentState);
-
-    workflow.addEdge(START, END);
-
-    return workflow;
-  }
-
-  constructor(model: string = process.env.MODEL_NAME!) {
-    this.graph = this.buildGraph();
+    return {
+      evidence_analysis: evidenceAnalysis,
+      evidence_count: evidenceResults.length,
+      messages: [{ role: "assistant", content: evidenceAnalysis }],
+    };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error(JSON.stringify({ event: "node_error", node: "evidence_analyst", error: errorMsg }));
+    return {
+      evidence_analysis: `Error during evidence analysis: ${errorMsg}`,
+      evidence_count: 0,
+      messages: [{ role: "assistant", content: `Error during evidence analysis: ${errorMsg}` }],
+    };
   }
 }
 ```
 
-> 💡 `private graph` has no explicit type annotation — TypeScript infers it from `this.buildGraph()`. Adding `StateGraph<AgentStateType>` manually causes a type mismatch because LangGraph's `new StateGraph(AgentState)` returns `StateGraph<AnnotationRoot<...>>`, not `StateGraph<StateType<...>>`. Letting TypeScript infer avoids this.
->
-> The graph currently has a direct `START → END` edge as a placeholder. You will add nodes in the next steps.
+> 💡 **`evidence_count` matters downstream** — This node writes `evidence_count: evidenceResults.length` into state. The routing function you add in Step 5 reads this field and sends the graph to `END` if it is `0`, preventing the Lead Detective from producing a verdict based on zero evidence.
 
-### Step 3: Add the Appraiser Node
+---
 
-The appraiser node calls SAP-RPT-1 directly (no LLM involved). It takes the payload from state, runs the prediction, and stores the result.
+## Step 5 — Add Routing Functions
 
-👉 First add the import for the RPT-1 tool at the top of `investigationWorkflow.ts`:
+Routing functions are plain TypeScript functions that read state and return a string matching one of the named edges. They live outside the class at the bottom of `investigationWorkflow.ts`.
+
+👉 Add these three routing functions after the class definition:
 
 ```typescript
-import { callRPT1Tool } from "./tools.js";
+function routeAfterAppraisal(state: AgentStateType): "continue" | "failed" {
+  if (!state.appraisal_success) {
+    console.log(JSON.stringify({ event: "route", from: "appraiser", to: "END", reason: "appraisal_failed" }));
+    return "failed";
+  }
+  return "continue";
+}
+
+function routeAfterAnalysis(state: AgentStateType): "continue" | "insufficient" {
+  if (state.evidence_count === 0) {
+    console.log(JSON.stringify({ event: "route", from: "evidence_analyst", to: "END", reason: "no_evidence" }));
+    return "insufficient";
+  }
+  return "continue";
+}
+
+function routeAfterVerdict(state: AgentStateType): "committed" | "needs_review" {
+  if (state.confidence_score >= 0.7) {
+    console.log(JSON.stringify({ event: "route", from: "lead_detective", to: "END", reason: "verdict_committed", confidence: state.confidence_score }));
+    return "committed";
+  }
+  console.log(JSON.stringify({ event: "route", from: "lead_detective", to: "interrupt", reason: "low_confidence", confidence: state.confidence_score }));
+  return "needs_review";
+}
 ```
 
-👉 Then add the appraiser node method to your class:
+> 💡 **Routing functions are the graph's decision logic** — they are the TypeScript equivalent of CrewAI's conditional task routing. Unlike CrewAI, where conditions are expressed in YAML or via decorator callbacks, LangGraph routing is plain TypeScript. The return value must be a string that matches one of the keys in the `addConditionalEdges` map you define in the next step.
+
+---
+
+## Step 6 — Add the Lead Detective Node
+
+The Lead Detective receives both the appraisal and evidence results from state, calls the LLM via `OrchestrationClient`, and validates the response with a Zod schema.
+
+### 6a. Add `zod` import and install the schema
+
+👉 Add this import at the top of `investigationWorkflow.ts`:
 
 ```typescript
-    private async appraiserNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
-        console.log('\n🔍 Appraiser Agent starting...')
+import { z } from "zod";
+```
 
-        try {
-            const result = await callRPT1Tool(state.payload)
+👉 Add the Zod schema and its inferred type just below your imports:
 
-            const appraisalResult = `Insurance Appraisal Complete: ${result}
-      Summary: Successfully predicted missing insurance values and item categories for the stolen artworks.`
+```typescript
+const CONFIDENCE_THRESHOLD = 0.7;
 
-            console.log('✅ Appraisal complete')
+const VerdictSchema = z.object({
+  culprit: z.string(),
+  confidence: z.number().min(0).max(1),
+  reasoning: z.string(),
+  totalInsuranceLoss: z.number(),
+});
 
-            return {
-                appraisal_result: appraisalResult,
-                messages: [...state.messages, { role: 'assistant', content: appraisalResult }],
-            }
-        } catch (error) {
-            const errorMsg = `Error during appraisal: ${error}`
-            console.error('❌', errorMsg)
-            return {
-                appraisal_result: errorMsg,
-                messages: [...state.messages, { role: 'assistant', content: errorMsg }],
-            }
-        }
+type Verdict = z.infer<typeof VerdictSchema>;
+```
+
+> 💡 **Why Zod for LLM output validation?**
+>
+> The LLM is asked to return a JSON object. It almost always does. But "almost always" is not good enough when downstream code reads `verdict.confidence` as a number to make a routing decision. Zod's `parse()` throws if the JSON is missing a field, has the wrong type, or if `confidence` is outside the `[0, 1]` range. That throw is caught in the node's `try/catch` and treated as a zero-confidence verdict — which routes the graph to a safe review state — rather than propagating as an unhandled runtime error.
+
+### 6b. Add the node method
+
+👉 Add `leadDetectiveNode` to the `InvestigationWorkflow` class:
+
+```typescript
+private async leadDetectiveNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
+  console.log(JSON.stringify({ event: "node_start", node: "lead_detective" }));
+
+  try {
+    const response = await this.orchestrationClient.chatCompletion({
+      messages: [
+        {
+          role: "system",
+          content: AGENT_CONFIGS.leadDetective.systemPrompt(
+            state.appraisal_result ?? "No appraisal result available",
+            state.evidence_analysis ?? "No evidence analysis available",
+            state.suspect_names,
+          ),
+        },
+        {
+          role: "user",
+          content:
+            "Analyze all the evidence and identify the culprit. You MUST respond with a JSON object matching this exact schema:\n" +
+            '{ "culprit": string, "confidence": number (0-1), "reasoning": string, "totalInsuranceLoss": number }\n' +
+            "Respond with JSON only — no markdown, no preamble.",
+        },
+      ],
+    });
+
+    const raw = response.getContent() ?? "";
+    let verdict: Verdict;
+
+    try {
+      verdict = VerdictSchema.parse(JSON.parse(raw));
+    } catch {
+      console.error(JSON.stringify({ event: "verdict_parse_error", node: "lead_detective", raw: raw.slice(0, 200) }));
+      return { confidence_score: 0, final_conclusion: raw, messages: [{ role: "assistant", content: raw }] };
     }
+
+    const conclusion =
+      `VERDICT: ${verdict.culprit}\n` +
+      `CONFIDENCE: ${(verdict.confidence * 100).toFixed(0)}%\n` +
+      `TOTAL INSURANCE LOSS: $${verdict.totalInsuranceLoss.toLocaleString()}\n\n` +
+      `REASONING:\n${verdict.reasoning}`;
+
+    console.log(JSON.stringify({ event: "node_complete", node: "lead_detective", culprit: verdict.culprit, confidence: verdict.confidence }));
+
+    return {
+      final_conclusion: conclusion,
+      confidence_score: verdict.confidence,
+      messages: [{ role: "assistant", content: conclusion }],
+    };
+  } catch (error) {
+    const errorMsg = `Error during final analysis: ${error}`;
+    console.error(JSON.stringify({ event: "node_error", node: "lead_detective", error: errorMsg }));
+    return {
+      final_conclusion: errorMsg,
+      confidence_score: 0,
+      messages: [{ role: "assistant", content: errorMsg }],
+    };
+  }
+}
 ```
 
-### Step 4: Wire the Appraiser into the Graph
+---
 
-👉 Update `buildGraph()` to register the appraiser node:
+## Step 7 — Rewrite `buildGraph` for Parallel Execution
+
+This is the core structural change. Both the Appraiser and the Evidence Analyst now connect directly from `START`, which tells LangGraph to execute them in parallel. They both route into the Lead Detective, which only runs after both branches complete.
+
+👉 Replace `buildGraph()` in `InvestigationWorkflow`:
 
 ```typescript
-    private buildGraph() {
-        const workflow = new StateGraph(AgentState)
+private buildGraph() {
+  const workflow = new StateGraph(AgentState);
 
-        workflow
-            .addNode('appraiser', this.appraiserNode.bind(this))
-            .addEdge(START, 'appraiser')
-            .addEdge('appraiser', END)
+  workflow
+    .addNode("appraiser", this.appraiserNode.bind(this))
+    .addNode("evidence_analyst", this.evidenceAnalystNode.bind(this))
+    .addNode("lead_detective", this.leadDetectiveNode.bind(this))
+    // Parallel fork: both agents start from START and run concurrently
+    .addEdge(START, "appraiser")
+    .addEdge(START, "evidence_analyst")
+    .addConditionalEdges("appraiser", routeAfterAppraisal, {
+      continue: "lead_detective",
+      failed: END,
+    })
+    .addConditionalEdges("evidence_analyst", routeAfterAnalysis, {
+      continue: "lead_detective",
+      insufficient: END,
+    })
+    .addConditionalEdges("lead_detective", routeAfterVerdict, {
+      committed: END,
+      needs_review: "lead_detective",
+    });
 
-        return workflow
-    }
+  return workflow;
+}
 ```
 
-> 💡 **Understanding `.bind(this)`:**
+> 💡 **How LangGraph handles parallel branches**
 >
-> When you pass a class method as a callback, JavaScript loses the `this` context; the function no longer knows it belongs to the class. `.bind(this)` creates a new function with `this` permanently set to the class instance. This is a standard JavaScript pattern when passing class methods as callbacks.
+> When multiple edges point away from `START`, LangGraph schedules those nodes concurrently in the same execution step. The Lead Detective node will not run until **both** the Appraiser and the Evidence Analyst have completed and written their results into shared state. LangGraph merges the partial state updates from both branches automatically using the reducers defined in `AgentState`.
+>
+> This is the correct architecture for this case because the Appraiser (database + RPT-1) and the Evidence Analyst (document search) have no dependency on each other. Running them sequentially would waste time. Running them in parallel means the total runtime is approximately `max(appraisal_time, analysis_time)` rather than the sum.
 
-> ⚠️ **Important — Chained API in LangGraph 0.2+:**
->
-> LangGraph 0.2 changed the API for building graphs. You **must** chain `.addNode()`, `.addNode()`, `.addEdge()` calls together rather than calling them separately. Separate calls cause TypeScript type errors because node names aren't known until all nodes are registered.
+> 💡 **`needs_review` loops back to `lead_detective`** — If `confidence_score < 0.7`, `routeAfterVerdict` returns `"needs_review"`, which sends the graph back to the Lead Detective node for another attempt. In Exercise 06, this low-confidence path will pause for a human witness statement before resuming.
+
+> ⚠️ **Chained API in LangGraph 0.2+** — You must chain `.addNode()` and `.addEdge()` calls together. Separate calls cause TypeScript type errors because node names are not known to the type system until all nodes are registered:
 >
 > ```typescript
-> // ✅ Correct (chained)
+> // ✅ Correct — chained
 > workflow
->   .addNode("appraiser", this.appraiserNode.bind(this))
+>   .addNode("appraiser", ...)
+>   .addNode("evidence_analyst", ...)
 >   .addEdge(START, "appraiser")
->   .addEdge("appraiser", END);
 >
-> // ❌ Incorrect (separate calls — TypeScript errors in LangGraph 0.2+)
-> workflow.addNode("appraiser", this.appraiserNode.bind(this));
+> // ❌ Incorrect — separate calls cause type errors in LangGraph 0.2+
+> workflow.addNode("appraiser", ...);
 > workflow.addEdge(START, "appraiser");
 > ```
 
-### Step 5: Add the kickoff Method
+---
 
-👉 Add the `kickoff` method to run the workflow:
+## Step 8 — Update `kickoff` to Use `recursionLimit`
 
-```typescript
-    async kickoff(inputs: { payload: RPT1Payload; suspect_names: string }): Promise<string> {
-        console.log('🚀 Starting Investigation Workflow...\n')
+The `needs_review` cycle means the Lead Detective can run more than once. Set a recursion limit to prevent an infinite loop in case confidence never reaches the threshold.
 
-        const app = this.graph.compile()
-        const result = await app.invoke({
-            payload: inputs.payload,
-            suspect_names: inputs.suspect_names,
-            messages: [],
-        })
-
-        console.log('\n--- Appraisal Result ---')
-        console.log(result.appraisal_result ?? '(not set)')
-        console.log('\n--- Evidence Analysis ---')
-        console.log(result.evidence_analysis ?? '(not set)')
-
-        return result.final_conclusion || 'Investigation completed but no conclusion was reached.'
-    }
-```
-
-### Step 6: Create main.ts
-
-👉 Add this code to [`/project/JavaScript/starter-project/src/main.ts`](/project/JavaScript/starter-project/src/main.ts):
+👉 Update the `kickoff` method in `InvestigationWorkflow`:
 
 ```typescript
-import "dotenv/config";
-import { InvestigationWorkflow } from "./investigationWorkflow.js";
-import { payload } from "./payload.js";
+async kickoff(inputs: { suspect_names: string }, threadId = "default"): Promise<string> {
+  console.log("🚀 Starting Investigation Workflow...\n");
 
-async function main() {
-  const workflow = new InvestigationWorkflow(process.env.MODEL_NAME!);
-  const suspectNames = "Sophie Dubois, Marcus Chen, Viktor Petrov";
-
-  const result = await workflow.kickoff({
-    payload,
-    suspect_names: suspectNames,
+  const app = this.buildGraph().compile({
+    checkpointer: this.checkpointer,
+    interruptBefore: [],
   });
 
-  console.log("\n📘 FINAL INVESTIGATION REPORT\n");
-  console.log(result);
+  const config = { configurable: { thread_id: threadId }, recursionLimit: 10 };
+
+  await app.invoke({ suspect_names: inputs.suspect_names, messages: [] }, config);
+
+  const snapshot = await app.getState(config);
+  const result = snapshot.values;
+
+  console.log("\n--- Appraisal Result ---");
+  console.log(result.appraisal_result ?? "(not set)");
+  console.log("\n--- Evidence Analysis ---");
+  console.log(result.evidence_analysis ?? "(not set)");
+  console.log("\n--- Confidence Score ---");
+  console.log(result.confidence_score ?? 0);
+
+  return result.final_conclusion || "Investigation completed but no conclusion was reached.";
 }
-
-main();
 ```
 
-### Step 7: Run Your Workflow
+> 💡 **`recursionLimit: 10`** — LangGraph counts each node execution as one step toward this limit. Setting it to `10` means the graph can run at most 10 node executions in total before LangGraph throws a `GraphRecursionError`. This prevents runaway loops if `routeAfterVerdict` never returns `"committed"`. For the parallel fork (two nodes running simultaneously from `START`), both count as separate steps.
+
+---
+
+## Step 9 — Verify the Graph Shape
+
+Make sure your constructor also initializes an `OrchestrationClient` for the Lead Detective node, and that `this.checkpointer = new MemorySaver()` is present:
+
+```typescript
+constructor(model: string = process.env.MODEL_NAME!) {
+  this.orchestrationClient = new OrchestrationClient({
+    promptTemplating: {
+      model: {
+        name: model,
+        params: { temperature: 0.7, max_tokens: 2000 },
+      },
+    },
+  });
+  this.checkpointer = new MemorySaver();
+}
+```
+
+Add the corresponding private field declarations at the top of the class:
+
+```typescript
+export class InvestigationWorkflow {
+  private orchestrationClient: OrchestrationClient;
+  private checkpointer: MemorySaver;
+  // ...
+}
+```
+
+Update the imports at the top of `investigationWorkflow.ts` to include everything needed:
+
+```typescript
+import { StateGraph, END, START, MemorySaver } from "@langchain/langgraph";
+import { OrchestrationClient } from "@sap-ai-sdk/orchestration";
+import { z } from "zod";
+import { AgentState } from "./types.js";
+import type { AgentStateType } from "./types.js";
+import { lookupArtworksTool, buildRPT1Payload, callRPT1Tool } from "./tools.js";
+import { AGENT_CONFIGS } from "./agentConfigs.js";
+```
+
+---
+
+## Step 10 — Run the Parallel Workflow
 
 ```bash
 npx tsx src/main.ts
 ```
 
+Because both the Appraiser and the Evidence Analyst run concurrently, you will see their `node_start` events appear before either `node_complete` event:
+
+```
+{"event":"node_start","node":"appraiser"}
+{"event":"node_start","node":"evidence_analyst","suspects":"Sophie Dubois, Marcus Chen, Viktor Petrov"}
+{"event":"tool_call","tool":"lookup_artworks"}
+{"event":"tool_result","tool":"lookup_artworks","count":14}
+{"event":"tool_result","tool":"lookup_artworks","count":14}
+...
+{"event":"node_complete","node":"evidence_analyst","success":true,"documentCount":3}
+{"event":"node_complete","node":"appraiser","success":true,"outputLength":2112}
+{"event":"node_start","node":"lead_detective"}
+{"event":"node_complete","node":"lead_detective","culprit":"...","confidence":0.85}
+{"event":"route","from":"lead_detective","to":"END","reason":"verdict_committed","confidence":0.85}
+```
+
+> 💡 **Expected output for the Evidence Analyst** — With the placeholder implementation in place, it will produce stub output. The final report will name a culprit based primarily on the appraisal data. The real evidence search will be wired up in Exercise 05.
+
 ---
 
-## Adding More Agents to the Workflow
+## Understanding the Architecture
 
-Now add the **Evidence Analyst** as a second agent. This agent will search evidence documents for each suspect (we'll connect it to real documents in the next exercise; for now it uses the LLM directly).
+### The Parallel Fork Pattern
 
-### Step 1: Add the Evidence Analyst Node
-
-👉 Add this method to your `InvestigationWorkflow` class:
-
-```typescript
-    private async evidenceAnalystNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
-        console.log('\n🔍 Evidence Analyst starting...')
-
-        try {
-            const suspects = state.suspect_names.split(',').map(s => s.trim())
-            const evidenceResults: string[] = []
-
-            for (const suspect of suspects) {
-                console.log(`  Searching evidence for: ${suspect}`)
-                // Placeholder — will be replaced with real grounding tool in Exercise 05
-                evidenceResults.push(`Evidence for ${suspect}: No evidence documents connected yet.`)
-            }
-
-            const evidenceAnalysis = `Evidence Analysis Complete: ${evidenceResults.join('\n\n')}
-      Summary: Analyzed evidence for all suspects: ${state.suspect_names}`
-
-            console.log('✅ Evidence analysis complete')
-
-            return {
-                evidence_analysis: evidenceAnalysis,
-                messages: [...state.messages, { role: 'assistant', content: evidenceAnalysis }],
-            }
-        } catch (error) {
-            const errorMsg = error instanceof Error ? error.message : String(error)
-            console.error('❌ Evidence analysis failed:', errorMsg)
-            return {
-                evidence_analysis: `Error during evidence analysis: ${errorMsg}`,
-                messages: [...state.messages, { role: 'assistant', content: `Error during evidence analysis: ${errorMsg}` }],
-            }
-        }
-    }
+```mermaid
+flowchart TD
+    S([START]) --> A[Appraiser\nSQLite + RPT-1]
+    S --> B[Evidence Analyst\nDocument search]
+    A -->|appraisal_success=true| D[Lead Detective\nLLM + Zod verdict]
+    A -->|appraisal_success=false| E([END])
+    B -->|evidence_count > 0| D
+    B -->|evidence_count = 0| E
+    D -->|confidence >= 0.7| E
+    D -->|confidence < 0.7| D
 ```
 
-> 💡 **`for...of` with `await` is sequential.** Unlike JavaScript's `Promise.all`, a `for...of` loop processes suspects one at a time. This is intentional: it makes logs readable and avoids overwhelming the external services. In Exercise 05, you'll call the real grounding service inside this loop.
+The fork is the right model here because the Appraiser and the Analyst are completely independent: one talks to a structured database, the other will talk to a document store. Neither needs the other's output to run. Sequential execution would introduce artificial latency with no benefit.
 
-> 💡 **`error instanceof Error ? error.message : String(error)`** is a safe way to extract an error message. The `instanceof Error` check handles proper `Error` objects (which have `.message` and `.stack`). The `String(error)` fallback handles cases where someone throws a plain string or object.
+### Structured Logging as Observability Foundation
 
-### Step 2: Update buildGraph to Include Both Nodes
+Every node and tool now logs a compact JSON object. The pattern is consistent:
 
-👉 Update the `buildGraph` method:
+| Event | When | Fields |
+|---|---|---|
+| `tool_call` | Immediately before the tool runs | `tool`, task-specific fields |
+| `tool_result` | Immediately after success | `tool`, `success: true`, output metadata |
+| `node_start` | First line of every node | `node`, relevant state fields |
+| `node_complete` | Last line before return (success path) | `node`, output metadata |
+| `node_error` | Last line before return (error path) | `node`, `error` |
+| `route` | Inside routing functions | `from`, `to`, `reason`, optional metrics |
 
-```typescript
-    private buildGraph() {
-        const workflow = new StateGraph(AgentState)
-
-        workflow
-            .addNode('appraiser', this.appraiserNode.bind(this))
-            .addNode('evidence_analyst', this.evidenceAnalystNode.bind(this))
-            .addEdge(START, 'appraiser')
-            .addEdge('appraiser', 'evidence_analyst')
-            .addEdge('evidence_analyst', END)
-
-        return workflow
-    }
-```
-
-### Step 3: Run the Two-Agent Workflow
+Because these are JSON objects on `stdout`, you can pipe the output through `jq` to filter for only the events you care about:
 
 ```bash
-npx tsx src/main.ts
+npx tsx src/main.ts 2>/dev/null | grep '^{' | jq 'select(.event == "route")'
 ```
 
-> 💡 **Note:** The Evidence Analyst currently produces placeholder output because it doesn't have access to real evidence documents yet. You'll connect it to the Grounding Service in Exercise 05.
-
-> 💡 **Expected output:** The final report will say "Investigation completed but no conclusion was reached." — this is intentional. The Lead Detective node that produces `final_conclusion` hasn't been added yet; you'll implement it in Exercise 06.
-
----
-
-## Understanding Multi-Agent Workflows
-
-### What Just Happened?
-
-You've built a **multi-agent LangGraph workflow** with specialized roles working in sequence:
-
-**1. Code-Based Configuration**
-
-- Agent system prompts live in `agentConfigs.ts` — TypeScript objects instead of YAML files
-- Configuration is type-safe, refactorable, and co-located with the code that uses it
-
-**2. Specialized Agent Nodes**
-
-- **Appraiser Node** — Calls the SAP-RPT-1 model directly to predict insurance values
-- **Evidence Analyst Node** — Will search evidence documents for each suspect
-
-**3. Sequential Execution with Shared State**
-
-- LangGraph executes nodes in order following the edges you defined
-- Each node reads from and writes to the shared `AgentState`
-- The appraiser runs first, then the evidence analyst builds on that state
-
-### How the Execution Flow Works
-
-When you call `workflow.kickoff(inputs)`:
-
-1. **Initialization**: `app.invoke(initialState)` starts the graph
-2. **Appraiser runs**: Calls RPT-1, stores result in `appraisal_result`
-3. **Evidence Analyst runs**: Reads `suspect_names`, stores result in `evidence_analysis`
-4. **Graph ends**: Returns the final state
+This is not just a debugging convenience. In production, a log aggregation system (Datadog, Cloud Logging, Kibana) would ingest these structured events and let you query them across thousands of agent runs without any code changes.
 
 ### LangGraph vs CrewAI — Multi-Agent Architecture
 
-| CrewAI (Python)                       | LangGraph (TypeScript)                            |
-| ------------------------------------- | ------------------------------------------------- |
-| `agents.yaml` + `tasks.yaml`          | `agentConfigs.ts` (TypeScript objects)            |
-| `@CrewBase` class decorator           | Plain TypeScript class (`InvestigationWorkflow`)  |
-| `@agent`, `@task`, `@crew` decorators | `buildGraph()` method with `.addNode().addEdge()` |
-| `Process.sequential`                  | Edges define the execution order                  |
-| `self.agents` auto-collected          | Nodes registered explicitly with `.addNode()`     |
-| `crew.kickoff(inputs={})`             | `app.invoke(initialState)`                        |
-
-> 💡 **LangGraph's approach gives you more explicit control.** Every transition between agents is an edge you define. There's no magic collection of agents via decorators; the graph structure is transparent and debuggable.
-
-### Why This Architecture Matters
-
-**Benefits of Multi-Agent Systems:**
-
-- **Specialization** — Each agent is an expert in one domain (valuation vs. investigation)
-  - Different LLMs can be assigned per node (GPT-4o for the appraiser, Claude for the analyst)
-  - Each agent has only the tools it needs (principle of least privilege)
-
-- **Scalability** — Adding new agents is straightforward
-  - Add a new node method, register it with `.addNode()`, and connect it with `.addEdge()`
-  - No need to modify existing agents
-
-- **Collaboration** — Agents can build upon each other's work
-  - Sequential processing allows later nodes to use earlier results via shared state
-  - The `context` pattern (used in Exercise 06) enables explicit data sharing
-
-- **Maintainability** — Clear separation of concerns
-  - Agent "personality" (goals, roles) lives in `agentConfigs.ts`
-  - Tool integration lives in `tools.ts`
-  - Orchestration logic lives in `investigationWorkflow.ts`
-
-**Real-World Applications:**
-
-- Customer service: Routing agent → Specialist agents → Escalation agent
-- Research: Data collection agent → Analysis agent → Report generation agent
-- DevOps: Monitoring agent → Diagnosis agent → Remediation agent
-
-### The Role of Tools
-
-Notice each agent uses different tools:
-
-- **Appraiser Node** uses `callRPT1Tool` — a structured prediction model
-- **Evidence Analyst Node** uses placeholder logic now, but needs `callGroundingService` (Exercise 05)
-
-This demonstrates **tool specialization**: agents only get the tools relevant to their role.
+| CrewAI (Python) | LangGraph (TypeScript) |
+|---|---|
+| `agents.yaml` + `tasks.yaml` | `agentConfigs.ts` (typed objects) |
+| `@CrewBase` class decorator | Plain TypeScript class |
+| `Process.sequential` | Sequential edges |
+| No built-in parallel mode | `addEdge(START, "nodeA")` + `addEdge(START, "nodeB")` |
+| `@task` with `context=[...]` | Shared `AgentState` |
+| Crew-level output | `final_conclusion` field in state |
 
 ---
 
 ## Key Takeaways
 
-- **LangGraph StateGraph** connects agent nodes with typed edges — the execution order is explicit
-- **Code-based configuration** in `agentConfigs.ts` replaces YAML files — type-safe and co-located
-- **`.bind(this)`** is required when passing class methods as LangGraph node callbacks
-- **Chained API** (`.addNode().addEdge()`) is required in LangGraph 0.2+
-- **`for...of` with `await`** processes items sequentially — predictable, readable, no race conditions
-- **`Partial<AgentState>`** return type means nodes only update the fields they changed
+- **Parallel fork**: two `addEdge(START, ...)` calls schedule both nodes concurrently; LangGraph merges their state updates automatically
+- **Conditional edges** replace `if/else` logic in the node: the routing function returns a string key, the edge map resolves the next node
+- **`recursionLimit: 10`** prevents infinite loops when a cycle (`needs_review` → `lead_detective`) is part of the graph
+- **Zod schema validation** converts LLM output from "probably a number" to "definitely a number, validated at runtime"
+- **Structured JSON logging** is the foundation for production observability: one `grep` or `jq` filter replaces hours of log reading
+- **LangSmith tracing** captures the full graph execution — parallel branches, state snapshots, timing — with only four environment variables
 
-**What's Next?**
+---
 
-The Evidence Analyst can't access actual evidence yet. In Exercise 05, you'll integrate the **Grounding Service** to give it real document access.
+## Troubleshooting
+
+**Issue**: `TypeError: this is undefined` inside node methods
+
+- **Solution**: Ensure you are using `.bind(this)` when registering class methods as nodes: `.addNode("appraiser", this.appraiserNode.bind(this))`.
+
+**Issue**: TypeScript error on `.addEdge()` — node name not recognized
+
+- **Solution**: Chain `.addNode()` and `.addEdge()` calls. In LangGraph 0.2+, calling `addEdge` before all nodes are registered causes type errors.
+
+**Issue**: Lead Detective runs before both parallel branches finish
+
+- **Solution**: This should not happen with the parallel fork wiring described above. If it does, check that both `addEdge(START, "appraiser")` and `addEdge(START, "evidence_analyst")` are present. If only one is, the other runs sequentially after it.
+
+**Issue**: `GraphRecursionError: Recursion limit of 10 exceeded`
+
+- **Solution**: The `needs_review` cycle ran 10 times without `confidence_score` reaching `0.7`. This can happen if the LLM consistently returns malformed JSON (falling into the zero-confidence parse-error path). Check the `verdict_parse_error` log events to see what the LLM is returning.
+
+**Issue**: LangSmith traces not appearing
+
+- **Solution**: Verify that all four `LANGCHAIN_*` variables are set in `.env` and that `import "dotenv/config"` is the first line of `main.ts`. LangSmith reads these variables at module load time.
+
+**Issue**: `process.env.MODEL_NAME` is `undefined`
+
+- **Solution**: Ensure `import "dotenv/config"` is at the very top of `main.ts`, before any other import that might trigger model initialization.
 
 ---
 
@@ -461,37 +561,19 @@ The Evidence Analyst can't access actual evidence yet. In Exercise 05, you'll in
 1. ✅ [Understand Generative AI Hub](00-understanding-genAI-hub.md)
 2. ✅ [Set up your development space](01-setup-dev-space.md)
 3. ✅ [Build a basic agent](02-build-a-basic-agent.md)
-4. ✅ [Add custom tools](03-add-your-first-tool.md) (RPT-1 model integration)
-5. ✅ [Build a multi-agent workflow](04-building-multi-agent-system.md) (this exercise)
-6. 📌 [Add the Grounding Service](05-add-the-grounding-service.md): Give your Evidence Analyst access to real documents
-7. 📌 [Solve the crime](06-solve-the-crime.md): Add a Lead Detective to combine findings and crack the case
-
----
-
-## Troubleshooting
-
-**Issue**: `TypeError: this is undefined` inside node methods
-
-- **Solution**: Ensure you're using `.bind(this)` when registering class methods as nodes: `.addNode('appraiser', this.appraiserNode.bind(this))`
-
-**Issue**: TypeScript error on `.addEdge()`: node name not recognized
-
-- **Solution**: Make sure you're chaining `.addNode().addNode().addEdge()` calls. In LangGraph 0.2+, calling `addEdge` before all nodes are registered causes type errors.
-
-**Issue**: `process.env.MODEL_NAME` is `undefined`
-
-- **Solution**: Ensure `import 'dotenv/config'` is at the top of `main.ts` (the first import). Without this, environment variables from `.env` aren't loaded.
-
-**Issue**: Agent nodes run but state fields are undefined in later nodes
-
-- **Solution**: Check that each node returns the correct field names matching your `AgentState` interface. Typos in field names will silently result in `undefined` in downstream nodes.
+4. ✅ [Add database + RPT-1 tools](03-add-your-first-tool.md)
+5. ✅ Build a parallel multi-agent workflow (this exercise)
+6. 📌 [Add the Grounding Service](05-add-the-grounding-service.md) — give the Evidence Analyst real document access
+7. 📌 [Solve the crime](06-solve-the-crime.md) — add the human-in-the-loop interrupt and the final verdict loop
 
 ---
 
 ## Resources
 
 - [LangGraph.js StateGraph Documentation](https://langchain-ai.github.io/langgraphjs/concepts/low_level/)
+- [LangGraph Parallel Node Execution](https://langchain-ai.github.io/langgraphjs/how-tos/branching/)
+- [LangSmith Quickstart](https://docs.smith.langchain.com/how_to_guides/setup/create_account_api_key)
 - [SAP Cloud SDK for AI (JavaScript)](https://github.com/SAP/ai-sdk-js)
-- [SAP Generative AI Hub](https://help.sap.com/docs/sap-ai-core/sap-ai-core-service-guide/generative-ai-hub-in-sap-ai-core-7db524ee75e74bf8b50c167951fe34a5)
+- [Zod Documentation](https://zod.dev)
 
 [Next exercise](05-add-the-grounding-service.md)

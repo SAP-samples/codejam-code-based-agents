@@ -1,321 +1,327 @@
-# Solve the Crime
+# Exercise 06 — Solve the Crime
 
-The only thing missing now is your **Lead Detective**. This node will synthesize findings from the Appraiser and Evidence Analyst to identify the culprit and calculate the total value of the stolen items.
+## Overview
 
-## Build the Lead Detective Node
+The Evidence Analyst gathered the case documents. Now you need a Lead Detective that reads that evidence, weighs it, and delivers a verdict. But a verdict is only useful if you can *act on it programmatically* — and that requires more than a prose paragraph from the LLM.
 
-### Step 1: Add the Lead Detective Node
+In this exercise you will:
 
-The Lead Detective receives results from both previous agents via shared state. Its system prompt (defined in `agentConfigs.ts`) injects the appraisal results and evidence analysis directly, giving the LLM all the information it needs to reason about the case.
+1. Define a **Zod schema** (`VerdictSchema`) that the LLM's JSON output must satisfy.
+2. Add the **Lead Detective node** that calls the LLM, parses and validates the response, and writes structured fields into state.
+3. Define three **conditional routing functions** — one after each node — that inspect state and decide which node (or `END`) to visit next.
+4. Wire everything together in **`buildGraph`** using `addConditionalEdges`.
 
-👉 Open [`/project/JavaScript/starter-project/src/investigationWorkflow.ts`](/project/JavaScript/starter-project/src/investigationWorkflow.ts)
+> **Why Zod for a routing decision?**
+> The LLM response is a string. You need a number (`confidence`) to decide whether to commit to a verdict. `VerdictSchema.parse(JSON.parse(raw))` does two things at once: it converts the raw string to a typed object *and* it throws if the shape is wrong, so you can handle a malformed response without a runtime crash downstream.
 
-👉 Add the missing imports at the top of the file:
+> **Why conditional edges instead of plain edges?**
+> Plain edges always go to the next node. Conditional edges let you encode *policy* in the graph topology. The confidence threshold (`0.7`) is not buried in a prompt — it lives in a routing function that is easy to read, test, and change independently of the LLM call.
+
+---
+
+## Prerequisites
+
+- Exercise 05 is complete: `evidence_count` is in state and `evidenceAnalystNode` writes it.
+- `npm run build` passes with no errors.
+- `zod` is already installed (it ships with the starter project).
+
+---
+
+## Steps
+
+### Step 1 — Add two new fields to the agent state
+
+Open `src/agentState.ts`. You need a field for the Detective's confidence score and a field for an optional witness statement (used in a later exercise — add it now so the type is consistent).
 
 ```typescript
-import { OrchestrationClient } from "@sap-ai-sdk/orchestration";
-import { AGENT_CONFIGS } from "./agentConfigs.js";
+confidence_score: Annotation<number>({
+  reducer: (_, update) => update,
+  default: () => 0,
+}),
+witness_statement: Annotation<string | undefined>({
+  reducer: (_, update) => update,
+  default: () => undefined,
+}),
 ```
 
-👉 Add `orchestrationClient` as a class field and initialize it in the constructor:
+Both use last-write-wins reducers. `witness_statement` is `undefined` by default; the Lead Detective node will use it only when it is present.
+
+---
+
+### Step 2 — Define `VerdictSchema` and the confidence threshold
+
+Open `src/agent.ts`. Near the top of the file, outside the class, add the Zod schema and the threshold constant:
 
 ```typescript
-export class InvestigationWorkflow {
-  private graph;
-  private orchestrationClient: OrchestrationClient;
+import { z } from "zod";
 
-  // ...
+const CONFIDENCE_THRESHOLD = 0.7;
 
-  constructor(model: string = process.env.MODEL_NAME!) {
-    this.orchestrationClient = new OrchestrationClient({
-      promptTemplating: {
-        model: {
-          name: model,
-          params: {
-            temperature: 0.7,
-            max_tokens: 2000,
-          },
+const VerdictSchema = z.object({
+  culprit: z.string(),
+  confidence: z.number().min(0).max(1),
+  reasoning: z.string(),
+  totalInsuranceLoss: z.number(),
+});
+type Verdict = z.infer<typeof VerdictSchema>;
+```
+
+> 💡 **`z.infer` gives you the TypeScript type for free** — You define the schema once and derive the type from it. If you later add a field to `VerdictSchema`, the `Verdict` type updates automatically.
+
+> 💡 **`.min(0).max(1)` is a contract, not a comment** — Zod will throw if the LLM returns `confidence: 1.5` or `confidence: -0.2`. You catch that in the `try/catch` inside the node rather than silently propagating a nonsensical confidence score into the routing function.
+
+---
+
+### Step 3 — Update the Lead Detective system prompt in `agentConfigs.ts`
+
+Open `src/agentConfigs.ts`. Update the `leadDetective.systemPrompt` function signature to accept an optional `witnessStatement` parameter and include it in the prompt when present:
+
+```typescript
+leadDetective: {
+  systemPrompt: (
+    appraisalResult: string,
+    evidenceAnalysis: string,
+    suspectNames: string,
+    witnessStatement?: string,
+  ) =>
+    `You are the lead detective on an art theft case.
+
+INSURANCE APPRAISAL:
+${appraisalResult}
+
+EVIDENCE ANALYSIS:
+${evidenceAnalysis}
+
+SUSPECTS:
+${suspectNames}
+${witnessStatement ? `\nNEW WITNESS STATEMENT:\n${witnessStatement}` : ""}
+
+Assess confidence honestly. If the evidence is ambiguous or incomplete, reflect that in a low confidence score.
+A confidence score below ${CONFIDENCE_THRESHOLD} means you should NOT commit to a final verdict.`,
+},
+```
+
+> 💡 **The threshold is in the prompt too** — The LLM needs to understand what a low confidence score *means* behaviourally, not just produce a number. Telling the model that below 0.7 means "do not commit" aligns its calibration with the routing logic.
+
+---
+
+### Step 4 — Implement `leadDetectiveNode`
+
+Still in `src/agent.ts`, add the method to the agent class:
+
+```typescript
+private async leadDetectiveNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
+  console.log(JSON.stringify({
+    event: "node_start",
+    node: "lead_detective",
+    hasWitnessStatement: !!state.witness_statement,
+  }));
+  try {
+    const response = await this.orchestrationClient.chatCompletion({
+      messages: [
+        {
+          role: "system",
+          content: AGENT_CONFIGS.leadDetective.systemPrompt(
+            state.appraisal_result ?? "No appraisal result available",
+            state.evidence_analysis ?? "No evidence analysis available",
+            state.suspect_names,
+            state.witness_statement,
+          ),
         },
-      },
+        {
+          role: "user",
+          content:
+            "Analyze all the evidence and identify the culprit. You MUST respond with a JSON object matching this exact schema:\n" +
+            '{ "culprit": string, "confidence": number (0-1), "reasoning": string, "totalInsuranceLoss": number }\n' +
+            "Respond with JSON only — no markdown, no preamble.",
+        },
+      ],
     });
-    this.graph = this.buildGraph();
+
+    const raw = response.getContent() ?? "";
+    let verdict: Verdict;
+
+    try {
+      verdict = VerdictSchema.parse(JSON.parse(raw));
+    } catch {
+      // Malformed response — record it but signal low confidence so routing can handle it
+      return {
+        confidence_score: 0,
+        final_conclusion: raw,
+        messages: [{ role: "assistant", content: raw }],
+      };
+    }
+
+    const conclusion =
+      `VERDICT: ${verdict.culprit}\n` +
+      `CONFIDENCE: ${(verdict.confidence * 100).toFixed(0)}%\n` +
+      `TOTAL INSURANCE LOSS: $${verdict.totalInsuranceLoss.toLocaleString()}\n\n` +
+      `REASONING:\n${verdict.reasoning}`;
+
+    console.log(JSON.stringify({
+      event: "node_complete",
+      node: "lead_detective",
+      culprit: verdict.culprit,
+      confidence: verdict.confidence,
+    }));
+
+    return {
+      final_conclusion: conclusion,
+      confidence_score: verdict.confidence,
+      messages: [{ role: "assistant", content: conclusion }],
+    };
+  } catch (error) {
+    return { final_conclusion: `Error: ${error}`, confidence_score: 0 };
   }
 }
 ```
 
-👉 Add the Lead Detective node method inside your `InvestigationWorkflow` class, after `evidenceAnalystNode`:
+Notice the two nested `try/catch` blocks:
+
+- The **outer** block catches network or SDK errors.
+- The **inner** block catches JSON parse or Zod validation errors. It returns `confidence_score: 0`, which the routing function will treat as "needs review" rather than crashing the graph.
+
+---
+
+### Step 5 — Define the three routing functions
+
+Add these three functions outside the class in `src/agent.ts`:
 
 ```typescript
-    private async leadDetectiveNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
-        console.log('\n🔍 Lead Detective analyzing all findings...')
-
-        const userMessage = 'Analyze all the evidence and identify the culprit. Provide a detailed conclusion.'
-
-        try {
-            const response = await this.orchestrationClient.chatCompletion({
-                messages: [
-                    {
-                        role: 'system',
-                        content: AGENT_CONFIGS.leadDetective.systemPrompt(
-                            state.appraisal_result || 'No appraisal result available',
-                            state.evidence_analysis || 'No evidence analysis available',
-                            state.suspect_names,
-                        ),
-                    },
-                    { role: 'user', content: userMessage },
-                ],
-            })
-            const conclusion = response.getContent() || 'No conclusion could be drawn.'
-
-            console.log('✅ Investigation complete')
-
-            return {
-                final_conclusion: conclusion,
-                messages: [...state.messages, { role: 'assistant', content: conclusion }],
-            }
-        } catch (error) {
-            const errorMsg = `Error during final analysis: ${error}`
-            console.error('❌', errorMsg)
-            return {
-                final_conclusion: errorMsg,
-                messages: [...state.messages, { role: 'assistant', content: errorMsg }],
-            }
-        }
-    }
-```
-
-> 💡 **Understanding how the Lead Detective gets context:**
->
-> The `AGENT_CONFIGS.leadDetective.systemPrompt()` function takes three arguments from `state`:
-> - `state.appraisal_result` — the RPT-1 predictions from the Appraiser node
-> - `state.evidence_analysis` — the grounded evidence findings from the Evidence Analyst node
-> - `state.suspect_names` — the original list of suspects
->
-> These are injected into the system prompt using template literals. The LLM receives the entire context in one message, making it a **synthesis task**: it reasons over structured inputs rather than searching for new information.
->
-> This is the TypeScript equivalent of CrewAI's `context=[self.appraise_loss_task(), self.analyze_evidence_task()]`, but instead of framework magic, you're explicitly passing data through state.
-
-### Step 2: Update buildGraph to Include All Three Nodes
-
-👉 Update the `buildGraph` method to include the Lead Detective:
-
-```typescript
-    private buildGraph() {
-        const workflow = new StateGraph(AgentState)
-
-        workflow
-            .addNode('appraiser', this.appraiserNode.bind(this))
-            .addNode('evidence_analyst', this.evidenceAnalystNode.bind(this))
-            .addNode('lead_detective', this.leadDetectiveNode.bind(this))
-            .addEdge(START, 'appraiser')
-            .addEdge('appraiser', 'evidence_analyst')
-            .addEdge('evidence_analyst', 'lead_detective')
-            .addEdge('lead_detective', END)
-
-        return workflow
-    }
-```
-
-> 💡 **The execution order is defined entirely by the edges:**
->
-> 1. `START → appraiser` — workflow begins with the Appraiser
-> 2. `appraiser → evidence_analyst` — after RPT-1 completes, Evidence Analyst runs
-> 3. `evidence_analyst → lead_detective` — after grounding completes, Lead Detective synthesizes
-> 4. `lead_detective → END` — Lead Detective's conclusion becomes the final result
-
-### Step 3: Verify main.ts
-
-👉 Check your [`/project/JavaScript/starter-project/src/main.ts`](/project/JavaScript/starter-project/src/main.ts): it needs no changes from Exercise 04.
-
-```typescript
-import "dotenv/config";
-import { InvestigationWorkflow } from "./investigationWorkflow.js";
-import { payload } from "./payload.js";
-
-async function main() {
-  const workflow = new InvestigationWorkflow(process.env.MODEL_NAME!);
-  const suspectNames = "Sophie Dubois, Marcus Chen, Viktor Petrov";
-
-  const result = await workflow.kickoff({
-    payload,
-    suspect_names: suspectNames,
-  });
-
-  console.log("\n📘 FINAL INVESTIGATION REPORT\n");
-  console.log(result);
+function routeAfterAppraisal(state: AgentStateType): "continue" | "failed" {
+  if (!state.appraisal_success) {
+    console.log(JSON.stringify({ event: "route", from: "appraiser", to: "END", reason: "appraisal_failed" }));
+    return "failed";
+  }
+  return "continue";
 }
 
-main();
+function routeAfterAnalysis(state: AgentStateType): "continue" | "insufficient" {
+  if (state.evidence_count === 0) {
+    console.log(JSON.stringify({ event: "route", from: "evidence_analyst", to: "END", reason: "no_evidence" }));
+    return "insufficient";
+  }
+  return "continue";
+}
+
+function routeAfterVerdict(state: AgentStateType): "committed" | "needs_review" {
+  if (state.confidence_score >= CONFIDENCE_THRESHOLD) {
+    console.log(JSON.stringify({ event: "route", from: "lead_detective", to: "END", confidence: state.confidence_score }));
+    return "committed";
+  }
+  console.log(JSON.stringify({ event: "route", from: "lead_detective", to: "interrupt", confidence: state.confidence_score }));
+  return "needs_review";
+}
 ```
+
+Each function returns a string key that maps to a node name or `END` in the edge map you will provide to `addConditionalEdges` in the next step.
+
+> 💡 **Routing functions are pure** — They take state, return a string, and have no side effects beyond the structured log line. This makes them trivial to unit-test: call the function with a mock state object and assert on the return value. No LLM, no network, no graph needed.
+
+> 💡 **`needs_review` loops back to `lead_detective`** — When confidence is below the threshold the Detective node will be called again in the next graph execution step. In Exercise 06b you will interrupt the graph here to inject a human-provided witness statement into `witness_statement` before the loop continues.
 
 ---
 
-## Solve the Crime
+### Step 6 — Rebuild `buildGraph` with conditional edges
 
-👉 Run your complete investigation workflow:
+Replace the existing `buildGraph` method in your agent class:
+
+```typescript
+private buildGraph() {
+  const workflow = new StateGraph(AgentState);
+
+  workflow
+    .addNode("appraiser", this.appraiserNode.bind(this))
+    .addNode("evidence_analyst", this.evidenceAnalystNode.bind(this))
+    .addNode("lead_detective", this.leadDetectiveNode.bind(this))
+    // Both appraiser and evidence_analyst start in parallel from START
+    .addEdge(START, "appraiser")
+    .addEdge(START, "evidence_analyst")
+    // After appraiser: continue to lead_detective or stop
+    .addConditionalEdges("appraiser", routeAfterAppraisal, {
+      continue: "lead_detective",
+      failed: END,
+    })
+    // After evidence_analyst: continue to lead_detective or stop
+    .addConditionalEdges("evidence_analyst", routeAfterAnalysis, {
+      continue: "lead_detective",
+      insufficient: END,
+    })
+    // After lead_detective: commit the verdict or loop back for another pass
+    .addConditionalEdges("lead_detective", routeAfterVerdict, {
+      committed: END,
+      needs_review: "lead_detective",
+    });
+
+  return workflow;
+}
+```
+
+> 💡 **`addEdge(START, "appraiser")` and `addEdge(START, "evidence_analyst")` together** — LangGraph runs both of these nodes in parallel before any node that depends on their output. The Lead Detective will only be scheduled once *both* appraiser and evidence_analyst have written into state. You get parallelism for free from the graph topology.
+
+> 💡 **The `needs_review → lead_detective` loop** — Because `routeAfterVerdict` can return `"needs_review"` and that maps back to `"lead_detective"`, the Detective node can run more than once in a single invocation. LangGraph treats each traversal step as a new execution with the current state snapshot, so the second pass will see whatever was written in the first pass.
+
+---
+
+### Step 7 — Verify the build and run
 
 ```bash
-npx tsx src/main.ts
+npm run build
 ```
 
-> ⏱️ **This may take 2-5 minutes** as your agents:
->
-> 1. Predict insurance values for stolen items using SAP-RPT-1
-> 2. Search evidence documents for each suspect using the Grounding Service
-> 3. Analyze all findings and identify the culprit
+Then run the agent:
 
-👉 Review the final output. Who does your Lead Detective identify as the thief?
-
-👉 Call for the instructor and share your suspect.
-
-### If Your Answer is Incorrect
-
-If the Lead Detective identifies the wrong suspect, refine the system prompts in `agentConfigs.ts`.
-
-**Which prompts to adjust:**
-
-1. **Lead Detective's system prompt** (`agentConfigs.ts → leadDetective.systemPrompt`)
-   - Make it more specific about what evidence to prioritize
-   - Example: Add "Focus on alibis, financial motives, and access to the museum on the night of the theft"
-
-2. **Evidence Analyst's grounding query** (`investigationWorkflow.ts → evidenceAnalystNode`)
-   - Make the search query more specific
-   - Example: `"Find evidence about ${suspect}'s alibi, financial records, and museum access on the night of the theft"`
-
-**Tips for improving prompts:**
-
-- ✅ Be specific about what to analyze (alibi, motive, opportunity)
-- ✅ Ask the detective to cite specific documents
-- ✅ Request cross-referencing of evidence
-- ✅ Instruct the detective to explain reasoning step-by-step
-- ❌ Avoid vague instructions like "solve the crime" without guidance
-- ❌ Don't assume the LLM knows which evidence is most important
-
----
-
-## Understanding Multi-Agent Orchestration
-
-### What Just Happened?
-
-You completed a full multi-agent investigation system where:
-
-1. **Appraiser Node** — Calls SAP-RPT-1 to predict missing insurance values from structured data
-2. **Evidence Analyst Node** — Searches 8 evidence documents via the Grounding Service for each suspect
-3. **Lead Detective Node** — Synthesizes all findings using an LLM to identify the culprit and calculate total losses
-4. **State** — Flows through all nodes, accumulating results that later nodes build upon
-
-### The Complete Investigation Flow
-
-```mermaid
-flowchart TD
-    A[START] --> B["Appraiser Node\nRPT-1 predictions → appraisal_result"]
-    B --> C["Evidence Analyst Node\nGrounding searches × 3 suspects → evidence_analysis"]
-    C --> D["Lead Detective Node\nLLM synthesis → final_conclusion"]
-    D --> E[END]
+```bash
+npm run start
 ```
 
-### The Role of agentConfigs.ts
+In the output you should see the routing events alongside the node events:
 
-The `AGENT_CONFIGS` object in `agentConfigs.ts` serves the same purpose as CrewAI's YAML files: it separates agent "personality" from orchestration logic. But as TypeScript objects:
+```
+{"event":"node_start","node":"appraiser"}
+{"event":"node_start","node":"evidence_analyst","suspects":"..."}
+...
+{"event":"node_complete","node":"appraiser","success":true}
+{"event":"node_complete","node":"evidence_analyst","documentCount":4}
+{"event":"route","from":"appraiser","to":"lead_detective"... (implicit in continue)}
+{"event":"node_start","node":"lead_detective","hasWitnessStatement":false}
+{"event":"node_complete","node":"lead_detective","culprit":"...","confidence":0.87}
+{"event":"route","from":"lead_detective","to":"END","confidence":0.87}
+```
 
-- System prompts are **functions** that accept runtime data and return a string
-- No YAML parsing, no indentation errors, no key synchronization issues
-- Your IDE can trace exactly where a system prompt is used and refactor it
-
-### Why This Matters
-
-Multi-agent systems are powerful because they:
-
-- **Distribute Responsibilities** across specialized agents with distinct roles
-- **Enable Collaboration** through task delegation and information sharing
-- **Improve Reasoning** by combining multiple expert perspectives
-- **Handle Complexity** by breaking down large problems into manageable subtasks
-- **Scale Efficiently** as new agents and tools can be added without disrupting existing ones
-
-### Why This Architecture Matters
-
-**Benefits of multi-agent LangGraph systems:**
-
-- **Specialization** — Each node has exactly the tools and context it needs
-- **Different models per node** — You could use GPT-4o for the detective and a cheaper model for search
-- **Explicit data flow** — State fields make it clear what each node produces and consumes
-- **Debuggability** — Every state transition is observable; add `console.log` to any node
-- **Extensibility** — Adding a new agent is `.addNode()` + `.addEdge()` + a new node function
-
-**Real-world applications:**
-
-- Customer service: Routing agent → Specialist agents → Escalation agent
-- Research: Data collection agent → Analysis agent → Report generation agent
-- DevOps: Monitoring agent → Diagnosis agent → Remediation agent
-
----
-
-## Key Takeaways
-
-- **Multi-node LangGraph workflows** decompose complex problems into specialized, sequential steps
-- **Shared state** is how nodes communicate: earlier results flow to later nodes via state fields
-- **System prompts with runtime data** (`AGENT_CONFIGS.leadDetective.systemPrompt(...)`) enable context-aware synthesis
-- **Edges define execution order**: the Lead Detective waits for both predecessors to complete
-- **`state.appraisal_result || 'No appraisal result available'`**: always provide fallbacks when reading optional state fields
-- **Prompt engineering** is iterative: run, observe, refine until the detective identifies the right suspect
-
----
-
-## Congratulations!
-
-You've successfully built a sophisticated multi-agent AI investigation system in TypeScript that can:
-
-- **Predict financial values** using the SAP-RPT-1 structured data model
-- **Search evidence documents** using the SAP Grounding Service (RAG)
-- **Synthesize findings** across multiple agents using LangGraph state
-- **Solve complex problems** through collaborative, code-based agent orchestration
-
----
-
-## Next Steps Checklist
-
-1. ✅ [Understand Generative AI Hub](00-understanding-genAI-hub.md)
-2. ✅ [Set up your development space](01-setup-dev-space.md)
-3. ✅ [Build a basic agent](02-build-a-basic-agent.md)
-4. ✅ [Add custom tools](03-add-your-first-tool.md) (RPT-1 model integration)
-5. ✅ [Build a multi-agent workflow](04-building-multi-agent-system.md)
-6. ✅ [Integrate the Grounding Service](05-add-the-grounding-service.md)
-7. ✅ [Solve the museum art theft mystery](06-solve-the-crime.md) (this exercise)
+If confidence comes back below `0.7`, you will see the `needs_review` route and then `node_start` for `lead_detective` a second time.
 
 ---
 
 ## Troubleshooting
 
-**Issue**: Lead Detective's conclusion doesn't include appraisal values
+**`VerdictSchema` throws — "Expected number, received string"** — The LLM returned `"confidence": "0.85"` (a quoted number). Add a prompt instruction: `"All numeric fields must be JSON numbers, not strings."` in the user message.
 
-- **Solution**: Ensure the `leadDetective.systemPrompt` in `agentConfigs.ts` explicitly asks the LLM to "Summarise the insurance appraisal values" and "Calculate the total estimated insurance value". The LLM only includes what you ask for.
+**`JSON.parse` throws — "Unexpected token"** — The LLM wrapped the JSON in a markdown code fence. Add `"Respond with JSON only — no markdown, no preamble."` to the user message (it is already in the solution above; check your prompt matches exactly).
 
-**Issue**: `state.appraisal_result` is `undefined` in the Lead Detective node
+**Graph loops indefinitely** — The LLM consistently returns confidence below `0.7`. This is usually a prompt issue: the system prompt is not injecting the evidence correctly, so the Detective has nothing to work from. Add a `console.log(state.evidence_analysis)` at the start of `leadDetectiveNode` to confirm the field is populated.
 
-- **Solution**: Check that the Appraiser node is returning the `appraisal_result` field in its return object. Add `console.log(state.appraisal_result)` at the start of `leadDetectiveNode` to debug.
+**`addConditionalEdges` TypeScript error** — The return type of your routing function must be a string literal union that exactly matches the keys in the edge map object. Check that `"continue" | "failed"` matches `{ continue: ..., failed: ... }`.
 
-**Issue**: `Cannot read properties of undefined (reading 'split')` in Evidence Analyst
-
-- **Solution**: `state.suspect_names` is undefined. Ensure your `kickoff()` call passes `suspect_names` in the input and your `AgentState` interface includes it as a required field.
-
-**Issue**: Investigation runs but `final_conclusion` is empty
-
-- **Solution**: Verify the `kickoff()` method returns `result.final_conclusion`. The `leadDetectiveNode` must return `{ final_conclusion: conclusion }` and the `final_conclusion` channel must be declared in `channels`.
-
-**Issue**: Agent identifies the wrong suspect after multiple runs
-
-- **Solution**: LLMs are non-deterministic by default. Lower `temperature` in `model_params` (try `0.3`) for more consistent reasoning. Also refine the Lead Detective's system prompt to be more specific about how to weigh evidence.
-
-**Issue**: `Error during final analysis: Error: 429 Too Many Requests`
-
-- **Solution**: You've hit the API rate limit. Wait a moment and retry. If this happens consistently, consider reducing the `max_chunk_count` in the grounding config to reduce token usage.
+**`state.appraisal_success` is always `undefined`** — The appraiser node must write `appraisal_success: true` to state on success. Check your `appraiserNode` return value from Exercise 03/04.
 
 ---
 
-## Resources
+## Checklist
 
-- [LangGraph.js Documentation](https://langchain-ai.github.io/langgraphjs/)
-- [SAP Cloud SDK for AI (JavaScript)](https://github.com/SAP/ai-sdk-js)
-- [SAP Generative AI Hub](https://help.sap.com/docs/sap-ai-core/sap-ai-core-service-guide/generative-ai-hub-in-sap-ai-core-7db524ee75e74bf8b50c167951fe34a5)
-- [SAP-RPT-1 Playground](https://rpt.cloud.sap/)
-- [SAP AI Core Grounding Management](https://help.sap.com/docs/sap-ai-core/sap-ai-core-service-guide/document-grounding)
+Before moving to Exercise 06b (human-in-the-loop), confirm:
+
+- [ ] `agentState.ts` has `confidence_score` and `witness_statement` fields
+- [ ] `VerdictSchema` and `CONFIDENCE_THRESHOLD` are defined outside the class
+- [ ] `leadDetectiveNode` parses and validates the LLM response with Zod
+- [ ] `routeAfterAppraisal`, `routeAfterAnalysis`, and `routeAfterVerdict` are defined outside the class
+- [ ] `buildGraph` uses `addConditionalEdges` for all three nodes
+- [ ] `npm run build` produces no errors
+- [ ] Running the agent prints a `VERDICT:` block with a confidence percentage
+- [ ] The route log line confirms `"committed"` was taken (confidence ≥ 0.7)
+
+---
+
+## Next steps
+
+In Exercise 06b you will handle the `needs_review` path properly: interrupt the graph execution, prompt the human operator for a witness statement, inject that statement into `witness_statement`, and resume the graph so the Lead Detective has new information for the second pass.

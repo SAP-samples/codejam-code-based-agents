@@ -17,7 +17,6 @@ import type {
   TaskArtifactUpdateEvent,
 } from "@a2a-js/sdk";
 import { InvestigationWorkflow } from "./investigationWorkflow.js";
-import { payload } from "./payload.js";
 
 const InputSchema = z.object({
   suspect_names: z.string(),
@@ -74,10 +73,7 @@ class InvestigatorExecutor implements AgentExecutor {
 
       // 3. Run the LangGraph workflow (async-native, no thread pool needed)
       const workflow = new InvestigationWorkflow(process.env.MODEL_NAME!);
-      const result = await workflow.kickoff({
-        payload,
-        suspect_names: suspectNames,
-      });
+      const result = await workflow.kickoff({ suspect_names: suspectNames });
 
       // 4. Send result as an artifact
       const artifact: TaskArtifactUpdateEvent = {
