@@ -212,20 +212,20 @@ In the following exercises, you will:
 
 - **Solution**: Ensure you're in the correct Python environment and run the install command.
 
-```bash
 # macOS / Linux - Activate environment and install
+```bash
 source ~/projects/codejam-code-based-agents/env/bin/activate
 pip install crewai litellm
 ```
 
-```powershell
 # Windows (PowerShell) - Activate environment and install
+```powershell
 .\env\Scripts\Activate.ps1
 pip install crewai litellm
 ```
 
-```cmd
 # Windows (Command Prompt) - Activate environment and install
+```cmd
 .\env\Scripts\activate.bat
 pip install crewai litellm
 ```
