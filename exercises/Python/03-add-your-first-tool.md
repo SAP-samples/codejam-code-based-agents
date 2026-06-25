@@ -293,35 +293,35 @@ if __name__ == "__main__":
 
 **From repository root:**
 
+### macOS / Linux
 ```bash
-# macOS / Linux
 python3 ./project/Python/starter-project/basic_agent.py
 ```
 
+### Windows (PowerShell)
 ```powershell
-# Windows (PowerShell)
 python .\project\Python\starter-project\basic_agent.py
 ```
 
+### Windows (Command Prompt)
 ```cmd
-# Windows (Command Prompt)
 python .\project\Python\starter-project\basic_agent.py
 ```
 
 **From starter-project folder:**
 
+### macOS / Linux
 ```bash
-# macOS / Linux
 python3 basic_agent.py
 ```
 
+### Windows (PowerShell)
 ```powershell
-# Windows (PowerShell)
 python basic_agent.py
 ```
 
+### Windows (Command Prompt)
 ```cmd
-# Windows (Command Prompt)
 python basic_agent.py
 ```
 
@@ -546,35 +546,35 @@ RPT1_DEPLOYMENT_URL="https://api.ai.prod.eu-central-1.aws.ml.hana.ondemand.com/v
 
 **From starter-project folder:**
 
+### macOS / Linux
 ```bash
-# macOS / Linux
 python3 basic_agent.py
 ```
 
+### Windows (PowerShell)
 ```powershell
-# Windows (PowerShell)
 python basic_agent.py
 ```
 
+### Windows (Command Prompt)
 ```cmd
-# Windows (Command Prompt)
 python basic_agent.py
 ```
 
 **From repository root:**
 
+### macOS / Linux
 ```bash
-# macOS / Linux
 python3 ./project/Python/starter-project/basic_agent.py
 ```
 
+### Windows (PowerShell)
 ```powershell
-# Windows (PowerShell)
 python .\project\Python\starter-project\basic_agent.py
 ```
 
+### Windows (Command Prompt)
 ```cmd
-# Windows (Command Prompt)
 python .\project\Python\starter-project\basic_agent.py
 ```
 
