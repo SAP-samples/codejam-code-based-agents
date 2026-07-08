@@ -1,5 +1,5 @@
 {
-  "name": "investigator-crew-typescript",
+  "name": "investigator-graph-typescript",
   "version": "1.0.0",
   "description": "Multi-agent investigation system using LangGraph and SAP Cloud SDK for AI",
   "main": "dist/main.js",

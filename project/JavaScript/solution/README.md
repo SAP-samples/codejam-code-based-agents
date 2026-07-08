@@ -1,6 +1,6 @@
-# Investigator Crew - TypeScript Solution
+# Investigator Graph - TypeScript Solution
 
-A multi-agent investigation system built with **LangGraph** and **SAP Cloud SDK for AI** to solve an art theft case. This TypeScript implementation provides a sophisticated agent orchestration system that mirrors the functionality of the Python CrewAI solution.
+A multi-agent investigation system built with **LangGraph** and **SAP Cloud SDK for AI** to solve an art theft case. This TypeScript implementation provides a sophisticated agent orchestration system that mirrors the functionality of the Python LangGraph solution.
 
 ## 🏗️ Architecture
 
@@ -101,7 +101,7 @@ The system will:
 ```
 solution/
 ├── src/
-│   ├── investigatorCrew.ts   # LangGraph orchestration and agent definitions
+│   ├── investigationWorkflow.ts   # LangGraph orchestration and agent definitions
 │   ├── main.ts                # Entry point
 │   ├── payload.ts             # Stolen items data
 │   ├── rptClient.ts           # RPT-1 API client

@@ -131,9 +131,9 @@ function resolveAppUrl(): string {
 const APP_URL = process.env.APP_URL ?? resolveAppUrl();
 
 const agentCard = {
-  name: "Investigator Crew",
+  name: "Investigator Graph",
   description:
-    "Multi-agent art theft investigation workflow exposed as an A2A server",
+    "Multi-agent art theft investigation graph exposed as an A2A server",
   url: APP_URL,
   version: "1.0.0",
   protocolVersion: "0.3.0",
