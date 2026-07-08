@@ -8,6 +8,7 @@ def main():
         "suspect_names": "Sophie Dubois, Marcus Chen, Viktor Petrov",
         "appraisal_result": None,
         "evidence_analysis": None,
+        "intelligence_report": None,
         "final_conclusion": None,
         "messages": [],
     })
@@ -21,6 +22,11 @@ def main():
     print("Evidence Analysis:")
     print("="*50)
     print(result["evidence_analysis"] or "(not set)")
+
+    print("\n" + "="*50)
+    print("Intelligence Report:")
+    print("="*50)
+    print(result["intelligence_report"] or "(not set)")
 
     print("\n" + "="*50)
     print("Investigation Report:")

@@ -2,11 +2,11 @@
 
 ## Overview
 
-Your investigator crew is deployed to Cloud Foundry and speaks A2A. But right now, only developers who know the A2A protocol can talk to it. In this exercise, you'll connect your agent to **SAP Joule** — SAP's AI copilot — so that any business user can interact with it through natural language in the Joule chat interface.
+Your investigator graph is deployed to Cloud Foundry and speaks A2A. But right now, only developers who know the A2A protocol can talk to it. In this exercise, you'll connect your agent to **SAP Joule** — SAP's AI copilot — so that any business user can interact with it through natural language in the Joule chat interface.
 
 To do that, you'll create a **Joule capability**: a set of YAML files that tell Joule what your agent can do, how to reach it, and how to display its responses.
 
-By the end of this exercise, your investigator crew will be:
+By the end of this exercise, your investigator graph will be:
 
 - ✅ Discoverable by Joule through a scenario description
 - ✅ Callable from the Joule chat via the A2A protocol
@@ -48,14 +48,14 @@ SAP Joule
   ├── 4. BTP Destination → Cloud Foundry
   │      Routes the request to your deployed app
   │
-  ├── 5. InvestigatorCrew runs
-  │      Your CrewAI agents do the investigation
+  ├── 5. InvestigationWorkflow runs
+  │      Your LangGraph nodes do the investigation
   │
   └── 6. Response displayed in Joule chat
          The function extracts the result and shows it to the user
 ```
 
-> 💡 **Key insight:** Joule doesn't need to know that your agent uses CrewAI, Python, or any specific framework. It only speaks A2A — the same protocol you set up in Exercise 07. The capability YAML is just the bridge between Joule's chat UI and your A2A endpoint.
+> 💡 **Key insight:** Joule doesn't need to know that your agent uses LangGraph, TypeScript, or any specific framework. It only speaks A2A — the same protocol you set up in Exercise 08. The capability YAML is just the bridge between Joule's chat UI and your A2A endpoint.
 
 ---
 
@@ -164,13 +164,13 @@ The `agent-request` action in your Joule function doesn't call your CF app direc
 |---|---|
 | **Name** | `INVESTIGATOR_AGENT_XX` |
 | **Type** | HTTP |
-| **URL** | `https://investigator-crew-a2a-<your-app-route>.cfapps.eu10-004.hana.ondemand.com` |
+| **URL** | `https://investigator-graph-ts-<your-app-route>.cfapps.eu10-004.hana.ondemand.com` |
 | **Proxy Type** | Internet |
 | **Authentication** | NoAuthentication |
 
 > ⚠️ **Replace `XX` with your participant number** (e.g., `INVESTIGATOR_AGENT_01`, `INVESTIGATOR_AGENT_02`). This ensures each participant has a unique destination. You'll use this exact name in all YAML files below.
 
-> ⚠️ **Replace `<your-app-route>`** with the actual route of your CF app from Exercise 07. You can find it by running `cf app investigator-crew-a2a` or by checking the URL you noted at the end of Exercise 07.
+> ⚠️ **Replace `<your-app-route>`** with the actual route of your CF app from Exercise 08. You can find it by running `cf apps` or by checking the URL you noted at the end of Exercise 08.
 
 👉 Click **Save**.
 
@@ -179,11 +179,11 @@ The `agent-request` action in your Joule function doesn't call your CF app direc
 > When Joule triggers an `agent-request`, it:
 > 1. Looks up the **system alias** in your capability YAML
 > 2. Resolves it to the **BTP Destination** name
-> 3. Uses the destination's URL to call `GET /.well-known/agent-card.json` on your agent
+> 3. Uses the destination's URL to call `GET /.well-known/agent.json` on your agent
 > 4. Reads the Agent Card to discover the communication endpoint and protocol
 > 5. Sends an A2A `message/send` request with the user's message
 >
-> This is the same discovery flow you tested manually with `curl` in Exercise 07 — now Joule does it automatically.
+> This is the same discovery flow you tested manually with `curl` in Exercise 08 — now Joule does it automatically.
 
 ---
 
@@ -199,7 +199,7 @@ Now you'll create the YAML files that define your Joule capability. These files 
 The complete directory structure you'll create:
 
 ```text
-/project/Python/starter-project/joule/
+/project/JavaScript/starter-project/joule/
 ├── investigator_capability/
 │   ├── functions/
 │   │   └── investigate_function.yaml
@@ -215,14 +215,14 @@ The complete directory structure you'll create:
 
 ```bash
 # macOS / Linux
-mkdir -p project/Python/starter-project/joule/investigator_capability/functions
-mkdir -p project/Python/starter-project/joule/investigator_capability/scenarios
+mkdir -p project/JavaScript/starter-project/joule/investigator_capability/functions
+mkdir -p project/JavaScript/starter-project/joule/investigator_capability/scenarios
 ```
 
 ```powershell
 # Windows (PowerShell)
-New-Item -ItemType Directory -Path project\Python\starter-project\joule\investigator_capability\functions -Force
-New-Item -ItemType Directory -Path project\Python\starter-project\joule\investigator_capability\scenarios -Force
+New-Item -ItemType Directory -Path project\JavaScript\starter-project\joule\investigator_capability\functions -Force
+New-Item -ItemType Directory -Path project\JavaScript\starter-project\joule\investigator_capability\scenarios -Force
 ```
 
 > 💡 **In Business Application Studio (BAS):** You can create the folders visually instead. Right-click the `starter-project` folder in the Explorer panel and choose **New Folder**. Create `joule`, then inside it `investigator_capability`, and inside that `functions` and `scenarios`.
@@ -231,7 +231,7 @@ New-Item -ItemType Directory -Path project\Python\starter-project\joule\investig
 
 This is the root configuration file for your capability. It defines metadata, the schema version, and the system aliases that map to BTP Destinations.
 
-👉 Create a new file [`/project/Python/starter-project/joule/investigator_capability/capability.sapdas.yaml`](/project/Python/starter-project/joule/investigator_capability/capability.sapdas.yaml):
+👉 Create a new file [`/project/JavaScript/starter-project/joule/investigator_capability/capability.sapdas.yaml`](/project/JavaScript/starter-project/joule/investigator_capability/capability.sapdas.yaml):
 
 ```yaml
 schema_version: 3.28.0
@@ -241,7 +241,7 @@ metadata:
   name: investigator_capability
   version: 1.0.0
   display_name: Investigator_Capability
-  description: Capability containing the investigator crew agent for art theft investigation
+  description: Capability containing the investigator graph agent for art theft investigation
 
 system_aliases:
   INVESTIGATOR_AGENT:
@@ -265,7 +265,7 @@ system_aliases:
 
 The scenario is what Joule uses to match user requests to your capability. When a user types a question, Joule compares it against all scenario descriptions and picks the best match.
 
-👉 Create a new file [`/project/Python/starter-project/joule/investigator_capability/scenarios/investigate_scenario.yaml`](/project/Python/starter-project/joule/investigator_capability/scenarios/investigate_scenario.yaml):
+👉 Create a new file [`/project/JavaScript/starter-project/joule/investigator_capability/scenarios/investigate_scenario.yaml`](/project/JavaScript/starter-project/joule/investigator_capability/scenarios/investigate_scenario.yaml):
 
 ```yaml
 description: >-
@@ -297,7 +297,7 @@ The function is where the action happens. It defines the `agent-request` action 
 
 > 💡 **In Business Application Studio (BAS):** Right-click the `functions` folder in the Explorer panel and choose **New File** to create the file below.
 
-👉 Create a new file [`/project/Python/starter-project/joule/investigator_capability/functions/investigate_function.yaml`](/project/Python/starter-project/joule/investigator_capability/functions/investigate_function.yaml):
+👉 Create a new file [`/project/JavaScript/starter-project/joule/investigator_capability/functions/investigate_function.yaml`](/project/JavaScript/starter-project/joule/investigator_capability/functions/investigate_function.yaml):
 
 ```yaml
 action_groups:
@@ -373,17 +373,17 @@ The expression `apiResponse.body.artifacts[0].parts[0].text` walks this JSON pat
 |---|---|
 | `apiResponse` | The full response variable |
 | `.body` | The A2A task response body |
-| `.artifacts[0]` | The first artifact — your `investigation_result` from `server.py` |
+| `.artifacts[0]` | The first artifact — your `investigation_result` from `src/server.ts` |
 | `.parts[0]` | The first part of that artifact |
 | `.text` | The actual text content of the investigation result |
 
-> 💡 **This maps directly to what you built in Exercise 07.** In `server.py`, your `InvestigatorExecutor` emits a `TaskArtifactUpdateEvent` with `artifactId="investigation_result"` and a `TextPart`. That's exactly what Joule reads here through `artifacts[0].parts[0].text`.
+> 💡 **This maps directly to what you built in Exercise 08.** In `src/server.ts`, your `InvestigatorExecutor` emits a `TaskArtifactUpdateEvent` with `artifactId: "investigation_result"` and `parts: [{ kind: "text", text: result }]` — the output of `new InvestigationWorkflow(...).kickoff(...)`. That's exactly what Joule reads here through `artifacts[0].parts[0].text`.
 
 ### Step 5: Create the Digital Assistant Descriptor
 
 The `da.sapdas.yaml` file is the top-level manifest. It tells the Joule CLI which capabilities to include when compiling and deploying.
 
-👉 Create a new file [`/project/Python/starter-project/joule/da.sapdas.yaml`](/project/Python/starter-project/joule/da.sapdas.yaml):
+👉 Create a new file [`/project/JavaScript/starter-project/joule/da.sapdas.yaml`](/project/JavaScript/starter-project/joule/da.sapdas.yaml):
 
 ```yaml
 schema_version: 1.4.0
@@ -415,7 +415,7 @@ With all YAML files in place, you can now compile and deploy the capability to y
 👉 Change to the directory containing your `da.sapdas.yaml`:
 
 ```bash
-cd project/Python/starter-project/joule
+cd project/JavaScript/starter-project/joule
 ```
 
 ### Step 2: Compile and Deploy
@@ -490,11 +490,11 @@ This opens a browser tab with the Joule chat interface connected to your test as
 Investigate the art theft at the museum. The suspects are Sophie Dubois, Marcus Chen, and Viktor Petrov.
 ```
 
-> ⚠️ **The investigation takes 1–2 minutes** because the full CrewAI pipeline runs on Cloud Foundry: the Appraiser calls RPT-1, the Evidence Analyst queries the Grounding Service, and the Lead Detective synthesizes the findings. Joule's synchronous timeout is 60 seconds — if your crew takes longer, you may see a timeout error. If this happens, try a simpler request or check the troubleshooting section below.
+> ⚠️ **The investigation takes 1–2 minutes** because the full LangGraph pipeline runs on Cloud Foundry: the Appraiser calls RPT-1, the Evidence Analyst queries the Grounding Service, and the Lead Detective synthesizes the findings. Joule's synchronous timeout is 60 seconds — if your graph takes longer, you may see a timeout error. If this happens, try a simpler request or check the troubleshooting section below.
 
 ### Step 3: Review the Response
 
-If everything is connected correctly, Joule displays the investigation result directly in the chat — the same markdown report your crew generates, now accessible through a conversational interface.
+If everything is connected correctly, Joule displays the investigation result directly in the chat — the same markdown report your graph generates, now accessible through a conversational interface.
 
 > 💡 **What just happened behind the scenes:**
 > 1. You typed a question in Joule
@@ -502,7 +502,7 @@ If everything is connected correctly, Joule displays the investigation result di
 > 3. The scenario triggered `investigate_function`
 > 4. The function's `agent-request` action called your BTP Destination
 > 5. The destination routed to your CF app's A2A endpoint
-> 6. Your `InvestigatorExecutor` ran the full CrewAI crew
+> 6. Your `InvestigatorExecutor` ran `new InvestigationWorkflow(...).kickoff(...)` — the full LangGraph pipeline
 > 7. The result came back as an A2A artifact
 > 8. The function's `message` action extracted the text and displayed it in Joule
 
@@ -512,7 +512,7 @@ If everything is connected correctly, Joule displays the investigation result di
 
 ### The Full Architecture
 
-You now have a complete end-to-end pipeline from Joule's chat UI to your multi-agent CrewAI system:
+You now have a complete end-to-end pipeline from Joule's chat UI to your LangGraph system:
 
 ```text
 User
@@ -531,13 +531,13 @@ SAP Joule (Chat UI)
   │                         │    BTP Destination: INVESTIGATOR_AGENT_XX
   │                         │         │
   │                         │         ▼
-  │                         │    CF App: investigator-crew-a2a
+  │                         │    CF App: investigator-graph-ts-<YOUR NAME>
   │                         │         │
   │                         │         ▼
-  │                         │    InvestigatorExecutor → InvestigatorCrew
-  │                         │         ├── Appraiser Agent (RPT-1)
-  │                         │         ├── Evidence Analyst (Grounding)
-  │                         │         └── Lead Detective (GPT-4o)
+  │                         │    InvestigatorExecutor → InvestigationWorkflow.kickoff(...)
+  │                         │         ├── Appraiser Node (RPT-1)
+  │                         │         ├── Evidence Analyst Node (Grounding)
+  │                         │         └── Lead Detective Node (GPT-4o)
   │                         │         │
   │                         │         ▼
   │                         │    A2A Response (artifacts[0].parts[0].text)
@@ -557,8 +557,8 @@ User sees investigation result in Joule chat
 | 3 | Scenario → Function | Internal | The matched scenario triggers the linked function |
 | 4 | Function → Destination | HTTP | The `agent-request` action resolves the system alias to a BTP Destination |
 | 5 | Destination → CF App | HTTPS | The destination routes to your Cloud Foundry app URL |
-| 6 | CF App → CrewAI | Internal | The `InvestigatorExecutor` runs `InvestigatorCrew().crew().kickoff()` |
-| 7 | CrewAI → Response | A2A JSON-RPC | The result is returned as an A2A `TaskArtifactUpdateEvent` |
+| 6 | CF App → LangGraph | Internal | The `InvestigatorExecutor` runs `new InvestigationWorkflow(...).kickoff(...)` |
+| 7 | LangGraph → Response | A2A JSON-RPC | The result is returned as an A2A `TaskArtifactUpdateEvent` |
 | 8 | Function → User | Chat UI | The `message` action extracts the text and shows it in Joule |
 
 ---
@@ -571,7 +571,7 @@ User sees investigation result in Joule chat
 - **System aliases** decouple the capability from the physical URL — the BTP Destination handles routing, so you can change the URL without redeploying the capability
 - **`schema_version: 3.28.0`** is the minimum DTA version required for code-based agent support
 - **The Joule Studio CLI** provides a complete workflow: `login` → `deploy` → `launch` → `update`
-- **The A2A protocol** enables framework-agnostic integration — Joule doesn't care whether your agent uses CrewAI, LangChain, LangGraph, or any other framework
+- **The A2A protocol** enables framework-agnostic integration — Joule doesn't care whether your agent uses LangGraph, Python, or any other framework
 
 ---
 
@@ -582,11 +582,12 @@ User sees investigation result in Joule chat
 3. ✅ [Add custom tools](03-add-your-first-tool.md)
 4. ✅ [Build a multi-agent system](04-building-multi-agent-system.md)
 5. ✅ [Add the Grounding Service](05-add-the-grounding-service.md)
-6. ✅ [Solve the crime](06-solve-the-crime.md)
-7. ✅ [Deploy your agent to CF with A2A](07-deploy-agent-to-cf.md)
-8. ✅ [Integrate your agent into SAP Joule](08-integrate-agent-into-joule.md) (this exercise)
+6. ✅ [Discover Connected Crimes](06-discover-connected-crimes.md)
+7. ✅ [Solve the crime](07-solve-the-crime.md)
+8. ✅ [Deploy your agent to CF with A2A](08-deploy-agent-to-cf-ts.md)
+9. ✅ [Integrate your agent into SAP Joule](09-integrate-agent-into-joule.md) (this exercise)
 
-🎉 **Congratulations!** You've completed the full CodeJam. You built a multi-agent AI system from scratch using CrewAI, deployed it to Cloud Foundry as an A2A server, and integrated it into SAP Joule — making it accessible to business users through natural language.
+🎉 **Congratulations!** You've completed the full CodeJam. You built a multi-agent AI system from scratch using LangGraph (TypeScript), deployed it to Cloud Foundry as an A2A server, and integrated it into SAP Joule — making it accessible to business users through natural language.
 
 ---
 
@@ -618,15 +619,15 @@ User sees investigation result in Joule chat
   1. The BTP Destination name (`INVESTIGATOR_AGENT_XX`) matches **exactly** the `destination` value in `capability.sapdas.yaml`'s `system_aliases` block
   2. The system alias key is `INVESTIGATOR_AGENT` (no XX) in both `capability.sapdas.yaml` and `investigate_function.yaml`
   3. The destination exists in the BTP cockpit under Connectivity → Destinations
-  4. The destination URL is correct and your CF app is running (`cf app investigator-crew-a2a`)
+  4. The destination URL is correct and your CF app is running (`cf apps`)
 
 **Issue**: Joule responds with an empty message or an error
 
 - **Solution**: Your CF app may have crashed or returned an unexpected response. Check:
-  - App status: `cf app investigator-crew-a2a`
-  - App logs: `cf logs investigator-crew-a2a --recent`
+  - App status: `cf apps`
+  - App logs: `cf logs investigator-graph-ts-<YOUR NAME> --recent`
   - Health endpoint: `curl https://<your-app-url>/health`
-  - Ensure the Agent Card is accessible: `curl https://<your-app-url>/.well-known/agent-card.json`
+  - Ensure the Agent Card is accessible: `curl https://<your-app-url>/.well-known/agent.json`
 
 **Issue**: "Scenario not matched" — Joule doesn't recognize your question
 
@@ -634,11 +635,11 @@ User sees investigation result in Joule chat
 
 **Issue**: Timeout error — the agent takes too long to respond
 
-- **Solution**: Joule expects a synchronous response within **60 seconds**. The full CrewAI crew may take longer. Options:
+- **Solution**: Joule expects a synchronous response within **60 seconds**. The full LangGraph pipeline may take longer. Options:
   - Try a simpler request that requires less processing
-  - Check `cf logs` to see where time is spent
-  - Ensure your CF app has enough memory (1024M in `manifest.yml`)
-  - Consider reducing the number of grounding service queries in the Evidence Analyst's task
+  - Check `cf logs investigator-graph-ts-<YOUR NAME> --recent` to see where time is spent
+  - Ensure your CF app has enough memory (512M in `manifest.yml`)
+  - Consider reducing the number of grounding service queries in the Evidence Analyst node
 
 **Issue**: YAML indentation or compile errors
 

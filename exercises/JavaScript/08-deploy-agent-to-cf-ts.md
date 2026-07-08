@@ -686,8 +686,9 @@ flowchart TD
 3. ✅ [Add custom tools](03-add-your-first-tool.md)
 4. ✅ [Build a multi-agent system](04-building-multi-agent-system.md)
 5. ✅ [Add the Grounding Service](05-add-the-grounding-service.md)
-6. ✅ [Solve the crime](06-solve-the-crime.md)
-7. ✅ [Deploy your agent to CF with A2A](07-deploy-agent-to-cf-ts.md) (this exercise)
+6. ✅ [Discover Connected Crimes](06-discover-connected-crimes.md)
+7. ✅ [Solve the crime](07-solve-the-crime.md)
+8. ✅ [Deploy your agent to CF with A2A](08-deploy-agent-to-cf-ts.md) (this exercise)
 
 ---
 

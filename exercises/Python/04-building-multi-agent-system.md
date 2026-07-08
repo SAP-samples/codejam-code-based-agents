@@ -392,7 +392,7 @@ When you run `InvestigatorCrew().crew().kickoff(inputs={...})`:
 
 - **Collaboration** - Agents can build upon each other's work
   - Sequential processing allows later agents to use earlier results
-  - `context` parameter (coming in Exercise 06) enables explicit data sharing
+  - `context` parameter (coming in Exercise 07) enables explicit data sharing
 
 - **Maintainability** - Clear separation of concerns
   - Business logic (goals, roles) lives in YAML
@@ -439,7 +439,8 @@ In the following exercises, you will:
 3. ✅ [Add custom tools](03-add-your-first-tool.md) (RPT-1 model integration)
 4. ✅ [Build a multi-agent system](04-building-multi-agent-system.md) (this exercise)
 5. 📌 [Add the Grounding Service](05-add-the-grounding-service.md) - Give your Evidence Analyst access to real documents
-6. 📌 [Solve the crime](06-solve-the-crime.md) - Add a Lead Detective Agent to combine findings and crack the case
+6. 📌 [Discover Connected Crimes](06-discover-connected-crimes.md) - Add web search with Perplexity sonar-pro
+7. 📌 [Solve the crime](07-solve-the-crime.md) - Add a Lead Detective Agent to combine findings and crack the case
 
 ---
 

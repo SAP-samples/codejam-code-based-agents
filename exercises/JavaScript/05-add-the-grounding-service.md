@@ -407,7 +407,8 @@ In the TypeScript approach, the orchestration pipeline handles the retrieval **a
 4. ✅ [Add custom tools](03-add-your-first-tool.md) to your agents
 5. ✅ [Build a multi-agent workflow](04-building-multi-agent-system.md)
 6. ✅ Integrate the Grounding Service (this exercise)
-7. 📌 [Solve the museum art theft mystery](06-solve-the-crime.md) using your fully-featured agent team
+7. 📌 [Add web search capabilities](06-discover-connected-crimes.md) to gather external intelligence
+8. 📌 [Solve the museum art theft mystery](07-solve-the-crime.md) using your fully-featured agent team
 
 ---
 
@@ -441,4 +442,4 @@ In the TypeScript approach, the orchestration pipeline handles the retrieval **a
 - [SAP Cloud SDK for AI — Orchestration Package](https://github.com/SAP/ai-sdk-js/tree/main/packages/orchestration)
 - [LangGraph.js Documentation](https://langchain-ai.github.io/langgraphjs/)
 
-[Next exercise](06-solve-the-crime.md)
+[Next exercise](06-discover-connected-crimes.md)

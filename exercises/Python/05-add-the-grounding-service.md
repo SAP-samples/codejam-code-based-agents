@@ -468,7 +468,8 @@ In the following exercises, you will:
 2. ✅ Add custom tools to your agents so they can access external data
 3. ✅ Create a complete crew with multiple agents working together
 4. ✅ Integrate the Grounding Service for better reasoning and fact-checking (this exercise)
-5. 📌 [Solve the museum art theft mystery](06-solve-the-crime.md) using your fully-featured agent team
+5. 📌 [Add web search capabilities](06-discover-connected-crimes.md) to gather external intelligence
+6. 📌 [Solve the museum art theft mystery](07-solve-the-crime.md) using your fully-featured agent team
 
 ---
 
@@ -511,4 +512,4 @@ In the following exercises, you will:
 - [SAP AI Core Grounding Management](https://help.sap.com/docs/sap-ai-core/sap-ai-core-service-guide/document-grounding)
 - [SAP Cloud SDK for AI (Python)](https://help.sap.com/doc/generative-ai-hub-sdk/CLOUD/en-US/_reference/README_sphynx.html)
 
-[Next exercise](06-solve-the-crime.md)
+[Next exercise](06-discover-connected-crimes.md)
