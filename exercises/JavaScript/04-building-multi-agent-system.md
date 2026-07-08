@@ -91,61 +91,78 @@ The `InvestigationWorkflow` class encapsulates the entire LangGraph workflow: th
 👉 Update your `types.ts` file to include all state fields needed for the multi-agent workflow:
 
 ```typescript
-export interface AgentState {
-  payload: RPT1Payload;
-  suspect_names: string;
-  appraisal_result?: string;
-  evidence_analysis?: string;
-  final_conclusion?: string;
-  messages: Array<{
-    role: string;
-    content: string;
-  }>;
-}
+import { Annotation } from "@langchain/langgraph";
+
+export const AgentState = Annotation.Root({
+  payload: Annotation<RPT1Payload>,
+  suspect_names: Annotation<string>,
+  appraisal_result: Annotation<string | undefined>({
+    reducer: (_, update) => update,
+    default: () => undefined,
+  }),
+  evidence_analysis: Annotation<string | undefined>({
+    reducer: (_, update) => update,
+    default: () => undefined,
+  }),
+  final_conclusion: Annotation<string | undefined>({
+    reducer: (_, update) => update,
+    default: () => undefined,
+  }),
+  messages: Annotation<Array<{ role: string; content: string }>>({
+    reducer: (current, update) => [...current, ...update],
+    default: () => [],
+  }),
+});
+
+export type AgentStateType = typeof AgentState.State;
 ```
 
-> 💡 The optional fields (`?`) start as `undefined`. Each agent node fills in its part, and LangGraph merges the partial updates into the full state. The `final_conclusion` field won't be set until the lead detective runs.
+> 💡 The fields without a `default` (`payload`, `suspect_names`) are required when invoking the graph. Fields with `default: () => undefined` start as `undefined` and get filled in as each agent node runs. The `final_conclusion` field won't be set until the lead detective runs.
 
 ### Step 2: Create the Workflow Class
 
-👉 Create [`/project/JavaScript/starter-project/src/investigationWorkflow.ts`](/project/JavaScript/starter-project/src/investigationWorkflow.ts):
+👉 Add the following to `project/JavaScript/starter-project/src/investigationWorkflow.ts`:
 
 ```typescript
-import { StateGraph, END, START } from '@langchain/langgraph'
-import { OrchestrationClient } from '@sap-ai-sdk/orchestration'
-import type { AgentState, ModelParams } from './types.js'
-import { callRPT1Tool } from './tools.js'
-import { AGENT_CONFIGS } from './agentConfigs.js'
+import { StateGraph, END, START } from "@langchain/langgraph";
+import { AgentState } from "./types.js";
+import type { AgentStateType, RPT1Payload } from "./types.js";
 
 export class InvestigationWorkflow {
-    private orchestrationClient: OrchestrationClient
-    private graph: StateGraph<AgentState>
+  private graph;
 
-    constructor(model: string, model_params?: ModelParams) {
-        this.orchestrationClient = new OrchestrationClient(
-            {
-                llm: { model_name: model, model_params: model_params ?? {} },
-            },
-            { resourceGroup: process.env.RESOURCE_GROUP },
-        )
-        this.graph = this.buildGraph()
-    }
+  private buildGraph() {
+    const workflow = new StateGraph(AgentState);
+
+    workflow.addEdge(START, END);
+
+    return workflow;
+  }
+
+  constructor(model: string = process.env.MODEL_NAME!) {
+    this.graph = this.buildGraph();
+  }
+}
 ```
 
-> 💡 **The constructor:**
+> 💡 `private graph` has no explicit type annotation — TypeScript infers it from `this.buildGraph()`. Adding `StateGraph<AgentStateType>` manually causes a type mismatch because LangGraph's `new StateGraph(AgentState)` returns `StateGraph<AnnotationRoot<...>>`, not `StateGraph<StateType<...>>`. Letting TypeScript infer avoids this.
 >
-> - Takes `model` and optional `model_params`: this makes the workflow reusable with different LLMs
-> - Initializes `OrchestrationClient` once for the entire class; it's reused across all LLM-based nodes
-> - Calls `buildGraph()` immediately so the graph is ready when you call `kickoff()`
+> The graph currently has a direct `START → END` edge as a placeholder. You will add nodes in the next steps.
 
 ### Step 3: Add the Appraiser Node
 
 The appraiser node calls SAP-RPT-1 directly (no LLM involved). It takes the payload from state, runs the prediction, and stores the result.
 
-👉 Add the appraiser node method to your class:
+👉 First add the import for the RPT-1 tool at the top of `investigationWorkflow.ts`:
 
 ```typescript
-    private async appraiserNode(state: AgentState): Promise<Partial<AgentState>> {
+import { callRPT1Tool } from "./tools.js";
+```
+
+👉 Then add the appraiser node method to your class:
+
+```typescript
+    private async appraiserNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
         console.log('\n🔍 Appraiser Agent starting...')
 
         try {
@@ -171,22 +188,13 @@ The appraiser node calls SAP-RPT-1 directly (no LLM involved). It takes the payl
     }
 ```
 
-### Step 4: Build the Graph
+### Step 4: Wire the Appraiser into the Graph
 
-👉 Add the `buildGraph` method:
+👉 Update `buildGraph()` to register the appraiser node:
 
 ```typescript
-    private buildGraph(): StateGraph<AgentState> {
-        const workflow = new StateGraph<AgentState>({
-            channels: {
-                payload: null,
-                suspect_names: null,
-                appraisal_result: null,
-                evidence_analysis: null,
-                final_conclusion: null,
-                messages: null,
-            },
-        })
+    private buildGraph() {
+        const workflow = new StateGraph(AgentState)
 
         workflow
             .addNode('appraiser', this.appraiserNode.bind(this))
@@ -222,26 +230,28 @@ The appraiser node calls SAP-RPT-1 directly (no LLM involved). It takes the payl
 👉 Add the `kickoff` method to run the workflow:
 
 ```typescript
-    async kickoff(inputs: { payload: any; suspect_names: string }): Promise<string> {
+    async kickoff(inputs: { payload: RPT1Payload; suspect_names: string }): Promise<string> {
         console.log('🚀 Starting Investigation Workflow...\n')
 
-        const initialState: AgentState = {
+        const app = this.graph.compile()
+        const result = await app.invoke({
             payload: inputs.payload,
             suspect_names: inputs.suspect_names,
             messages: [],
-        }
+        })
 
-        const app = this.graph.compile()
-        const result = await app.invoke(initialState)
+        console.log('\n--- Appraisal Result ---')
+        console.log(result.appraisal_result ?? '(not set)')
+        console.log('\n--- Evidence Analysis ---')
+        console.log(result.evidence_analysis ?? '(not set)')
 
         return result.final_conclusion || 'Investigation completed but no conclusion was reached.'
     }
-}
 ```
 
 ### Step 6: Create main.ts
 
-👉 Create [`/project/JavaScript/starter-project/src/main.ts`](/project/JavaScript/starter-project/src/main.ts):
+👉 Add this code to [`/project/JavaScript/starter-project/src/main.ts`](/project/JavaScript/starter-project/src/main.ts):
 
 ```typescript
 import "dotenv/config";
@@ -281,7 +291,7 @@ Now add the **Evidence Analyst** as a second agent. This agent will search evide
 👉 Add this method to your `InvestigationWorkflow` class:
 
 ```typescript
-    private async evidenceAnalystNode(state: AgentState): Promise<Partial<AgentState>> {
+    private async evidenceAnalystNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
         console.log('\n🔍 Evidence Analyst starting...')
 
         try {
@@ -323,17 +333,8 @@ Now add the **Evidence Analyst** as a second agent. This agent will search evide
 👉 Update the `buildGraph` method:
 
 ```typescript
-    private buildGraph(): StateGraph<AgentState> {
-        const workflow = new StateGraph<AgentState>({
-            channels: {
-                payload: null,
-                suspect_names: null,
-                appraisal_result: null,
-                evidence_analysis: null,
-                final_conclusion: null,
-                messages: null,
-            },
-        })
+    private buildGraph() {
+        const workflow = new StateGraph(AgentState)
 
         workflow
             .addNode('appraiser', this.appraiserNode.bind(this))
@@ -353,6 +354,8 @@ npx tsx src/main.ts
 ```
 
 > 💡 **Note:** The Evidence Analyst currently produces placeholder output because it doesn't have access to real evidence documents yet. You'll connect it to the Grounding Service in Exercise 05.
+
+> 💡 **Expected output:** The final report will say "Investigation completed but no conclusion was reached." — this is intentional. The Lead Detective node that produces `final_conclusion` hasn't been added yet; you'll implement it in Exercise 06.
 
 ---
 

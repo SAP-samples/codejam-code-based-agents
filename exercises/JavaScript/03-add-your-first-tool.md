@@ -8,7 +8,7 @@ In the previous exercise, you built a basic agent that could reason and respond 
 
 In this exercise, you will create the payload data for the stolen items, build a client for the SAP-RPT-1 model, and call it directly from your agent node.
 
-> **SAP-RPT-1** — [SAP's Relational Pretrained Transformer model](https://www.sap.com/products/artificial-intelligence/sap-rpt.html) is a foundation model trained on structured data. It is available in Generative AI Hub to gain predictive insights from enterprise data without building models from scratch. The model works by uploading example data rows as JSON and can do classification and regression predictions on your dataset.
+> **SAP-RPT-1** — [SAP's Relational Pretrained Transformer model](https://www.sap.com/products/artificial-intelligence/sap-rpt.html) is a foundation model trained on structured data. It is available in Generative AI Hub to gain predictive insights from enterprise data. The model works by uploading example data rows as JSON and can do classification and regression predictions on your dataset.
 
 ---
 
@@ -224,7 +224,7 @@ export const payload: RPT1Payload = {
 
 👉 Open [`/project/JavaScript/starter-project/src/types.ts`](/project/JavaScript/starter-project/src/types.ts)
 
-👉 Add the type definitions for the payload structure:
+👉 Add the type definitions for the payload structure at the end of the file:
 
 ```typescript
 export interface PredictionTargetColumn {
@@ -280,8 +280,8 @@ export interface RPT1Payload {
 >
 > Two fields use union types to express constraints directly in the type:
 >
-> - `task_type: "regression" | "classification"` — a **string literal union**. TypeScript will reject any other string at compile time. This documents the two valid RPT-1 task types and prevents typos like `"Regression"` or `"classify"` from reaching the API.
-> - `INSURANCE_VALUE: number | string` — a **value union**. Most items have a known numeric value such as `45000000`. Items with a missing value use the string placeholder `"'[PREDICT]'"`. The union type captures this reality: the field can legitimately be either type depending on whether the value is known or needs to be predicted.
+> - `task_type: "regression" | "classification"`, a **string literal union**. TypeScript will reject any other string at compile time. This documents the two valid RPT-1 task types and prevents typos like `"Regression"` or `"classify"` from reaching the API.
+> - `INSURANCE_VALUE: number | string`, a **value union**. Most items have a known numeric value such as `45000000`. Items with a missing value use the string placeholder `"'[PREDICT]'"`. The union type captures this reality: the field can legitimately be either type depending on whether the value is known or needs to be predicted.
 >
 > Without these union types you would need to remember these constraints yourself and hope you never make a mistake. With them, the compiler enforces the contract automatically.
 >
@@ -297,7 +297,7 @@ export interface RPT1Payload {
 
 ## Build the SAP-RPT-1 Client
 
-### Step 1: Create the RptClient Wrapper
+### Create the RptClient Wrapper
 
 The `@sap-ai-sdk/rpt` package is included in the SDK and provides a typed client for the SAP-RPT-1 model.
 
@@ -313,7 +313,10 @@ export class RPT1Client {
   private client: RptClient;
 
   constructor() {
-    this.client = new RptClient({ resourceGroup: process.env.RESOURCE_GROUP! });
+    this.client = new RptClient({
+      modelName: "sap-rpt-1-large",
+      resourceGroup: process.env.RESOURCE_GROUP!,
+    });
   }
 
   async predictWithoutSchema(payload: RPT1Payload): Promise<any> {
@@ -326,20 +329,9 @@ export class RPT1Client {
 > 💡 **Understanding the wrapper class:**
 >
 > - `RptClient` from `@sap-ai-sdk/rpt` handles authentication and the API call automatically: no OAuth token fetching needed.
+> - **`modelDeployment` parameter**: the constructor accepts a `{ modelName, resourceGroup }` object matching the SDK's `ModelDeployment` type. The default uses `sap-rpt-1-large` and reads `RESOURCE_GROUP` from your `.env`. If multiple RPT-1 models are deployed in different resource groups, you can override both fields when instantiating `RPT1Client`.
 > - `payload as any`: the `RPT1Payload` type we defined and the SDK's internal `PredictionData` type describe the same JSON structure, but TypeScript does not know that. They are two separate type definitions written independently (one by us, one by the SDK authors) so TypeScript treats them as incompatible and refuses to accept one where the other is expected. The `as any` cast tells TypeScript to stop checking the type for this one call. The JSON that reaches the API at runtime is identical either way; this is purely a compile-time compatibility issue between two type definitions.
 > - `Promise<any>`: the return type is `any` because the SDK's `PredictResponsePayload` type is complex and we don't need to type it precisely here.
-
-### Step 2: Update .env with the RPT-1 Deployment URL
-
-👉 Go to [SAP AI Launchpad](https://genai-codejam-luyq1wkg.ai-launchpad.prod.eu-central-1.aws.ai-prod.cloud.sap/aic/index.html#/workspaces&/a/detail/TwoColumnsMidExpanded/?workspace=api-connection&resourceGroup=s3-grounding)
-
-> DO NOT USE THE `default` RESOURCE GROUP!
-
-👉 Go to **Workspaces** → Select your workspace → resource group `ai-agents-codejam`.
-
-👉 Navigate to `ML Operations > Deployments > sap-rpt-1-large_autogenerated`
-
-👉 The `@sap-ai-sdk/rpt` client uses the resource group and looks up the RPT-1 deployment automatically. No deployment URL needed in `.env`. Just make sure your `RESOURCE_GROUP` is set correctly.
 
 ---
 
@@ -386,12 +378,15 @@ import "dotenv/config";
 import { StateGraph, END, START } from "@langchain/langgraph";
 import { callRPT1Tool } from "./tools.js";
 import { payload } from "./payload.js";
-import type { AgentState } from "./types.js";
+import type { AgentStateType } from "./types.js";
+import { AgentState } from "./types.js";
 
-async function appraiserNode(state: AgentState): Promise<Partial<AgentState>> {
+async function appraiserNode(
+  state: AgentStateType,
+): Promise<Partial<AgentStateType>> {
   console.log("\n🔍 Appraiser Agent starting...");
 
-  const result = await callRPT1Tool(state.payload);
+  const result = await callRPT1Tool(payload);
 
   const appraisalResult = `Insurance Appraisal Complete: ${result}
   Summary: Successfully predicted missing insurance values and item categories for the stolen artworks.`;
@@ -408,28 +403,15 @@ async function appraiserNode(state: AgentState): Promise<Partial<AgentState>> {
 }
 ```
 
-> 💡 **Why does the payload go into AgentState?**
->
-> The appraiser node needs the payload to call the RPT-1 tool.
->
-> In LangGraph you cannot call nodes directly. The framework calls them for you when following edges. The only way to give a node data is through state. So the payload needs to be part of `AgentState` from the start, set once in the initial state when you call `app.invoke()`, and then readable by any node that needs it.
->
-> Add the field to your `AgentState` interface in `types.ts`:
->
-> ```typescript
-> payload: RPT1Payload;
-> ```
+### Step 3: Update the Initial State
 
-### Step 3: Update main.ts to Pass the Payload
-
-👉 Update `basicAgent.ts` to pass the payload as part of the initial state:
+👉 Update the `app.invoke()` call in `basicAgent.ts` to pass the initial state directly:
 
 ```typescript
-const initialState: AgentState = {
-  payload,
+const result = await app.invoke({
   suspect_names: "Sophie Dubois, Marcus Chen, Viktor Petrov",
   messages: [],
-};
+});
 ```
 
 ### Step 4: Run Your Agent with the RPT-1 Tool
@@ -484,8 +466,8 @@ In LangGraph, **you decide when a tool is called**: it's a regular function call
 
 ```typescript
 // LangGraph: explicit tool call in your node
-async function appraiserNode(state: AgentState) {
-    const result = await callRPT1Tool(state.payload) // you call it directly
+async function appraiserNode(state: AgentStateType) {
+    const result = await callRPT1Tool(payload) // you call it directly
     ...
 }
 ```

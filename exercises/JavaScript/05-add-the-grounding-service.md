@@ -28,8 +28,8 @@ In this exercise, you will add a grounding service tool to your Evidence Analyst
 
 **Grounded Agent (GOOD):**
 
-> "According to MARCUS_TERMINATION_LETTER.txt, Marcus Chen was terminated on 2024-01-15 due to 'unauthorized access to secured areas.' BANK_RECORDS.txt shows large cash deposits of €50,000 on 2024-01-20."
-> _(Facts retrieved from actual documents with sources!)_
+> "According to MARCUS*TERMINATION_LETTER.txt, Marcus Chen was terminated on 2024-01-15 due to 'unauthorized access to secured areas.' BANK_RECORDS.txt shows large cash deposits of €50,000 on 2024-01-20."
+> *(Facts retrieved from actual documents with sources!)\_
 
 ### The Problem We're Solving
 
@@ -102,13 +102,13 @@ SAP AI Core uses **pipelines** to orchestrate the entire grounding workflow. Thi
 
 **A Pipeline Contains:**
 
-| Component                | Purpose                        | Example                                  |
-| ------------------------ | ------------------------------ | ---------------------------------------- |
-| **Data Repository**      | Where documents are stored     | S3 bucket: `evidence-documents`          |
-| **Embedding Model**      | Converts text to vectors       | `text-embedding-ada-002` (OpenAI)        |
-| **Vector Database**      | Stores and searches embeddings | SAP Vector Engine                        |
+| Component                | Purpose                        | Example                                    |
+| ------------------------ | ------------------------------ | ------------------------------------------ |
+| **Data Repository**      | Where documents are stored     | S3 bucket: `evidence-documents`            |
+| **Embedding Model**      | Converts text to vectors       | `text-embedding-ada-002` (OpenAI)          |
+| **Vector Database**      | Stores and searches embeddings | SAP Vector Engine                          |
 | **Search Configuration** | Search parameters              | `max_chunk_count: 5` (return top 5 chunks) |
-| **Pipeline ID**          | Unique identifier              | `0d3b132a-cbe1-4c75-abe7-adfbbab7e002`   |
+| **Pipeline ID**          | Unique identifier              | `0d3b132a-cbe1-4c75-abe7-adfbbab7e002`     |
 
 **For This Exercise:**
 
@@ -141,23 +141,12 @@ With the grounding service, your Evidence Analyst transforms from guessing to in
 - Agent: "SECURITY_LOG.txt shows Marcus accessed gallery 2C at 23:47 on the night of the theft..."
 - Reliability: ~95% (fact-based, verifiable)
 
-### RAG vs. Fine-Tuning: Why Grounding is Better
-
-You might wonder: "Why not just fine-tune the LLM on our evidence documents?"
-
-| Fine-Tuning                                 | Grounding (RAG)                      |
-| ------------------------------------------- | ------------------------------------ |
-| ❌ Expensive ($1000s per training run)      | ✅ Cost-effective (pay per search)   |
-| ❌ Weeks to retrain when documents update   | ✅ Instant — just add/update documents |
-| ❌ Black box — can't trace answers to sources | ✅ Full transparency with citations  |
-| ❌ Model "memorizes" data (privacy risk)    | ✅ Documents stay separate (secure)  |
-| ❌ Requires ML expertise                    | ✅ Simple API calls                  |
-
 > 🎯 **Best Practice:** Use grounding for knowledge that changes (evidence, documents, data). Use fine-tuning for behaviour/style (e.g., "always be polite").
 
 ### How Grounding Works in the SAP Cloud SDK for AI
 
 In TypeScript, you configure grounding directly in the `OrchestrationClient` definition. The orchestration pipeline handles:
+
 1. Converting the user's question to a vector embedding
 2. Searching the vector database
 3. Injecting the retrieved chunks into the LLM prompt
@@ -169,7 +158,7 @@ No separate retrieval API client is needed; it's all built into `OrchestrationCl
 
 ## Access the Grounding Pipeline in SAP AI Launchpad
 
-👉 Open [SAP AI Launchpad](https://genai-codejam-luyq1wkg.ai-launchpad.prod.eu-central-1.aws.ai-prod.cloud.sap/aic/index.html#/workspaces&/a/detail/TwoColumnsMidExpanded/?workspace=api-connection&resourceGroup=s3-grounding)
+👉 Open [SAP AI Launchpad](https://genai-codejam-luyq1wkg.ai-launchpad.prod.eu-central-1.aws.ai-prod.cloud.sap/aic/index.html#/workspaces&/a/detail/TwoColumnsMidExpanded/?workspace=codejam&resourceGroup=ai-agents-codejam)
 
 #### Select the Resource Group
 
@@ -186,6 +175,7 @@ SAP AI Core tenants use [resource groups](https://help.sap.com/docs/sap-ai-core/
 👉 Open the existing pipeline
 
 Here you'll see:
+
 - **Pipeline Name** — Identifies this grounding configuration
 - **Pipeline ID** — The unique identifier you'll use in code (☝️ **Copy this!**)
 - **Data Repository** — The storage containing evidence documents
@@ -206,83 +196,97 @@ In the SAP Cloud SDK for AI, grounding is configured as part of `OrchestrationCl
 
 👉 Open [`/project/JavaScript/starter-project/src/tools.ts`](/project/JavaScript/starter-project/src/tools.ts)
 
+👉 Add the import statement to the top of the file:
+
+```typescript
+import { OrchestrationClient } from "@sap-ai-sdk/orchestration";
+```
+
 👉 Add the grounding client and tool function:
 
 ```typescript
-import { OrchestrationClient } from '@sap-ai-sdk/orchestration'
-
 const groundingClient = new OrchestrationClient(
-    {
-        llm: {
-            model_name: process.env.MODEL_NAME!,
-            model_params: {},
-        },
-        templating: {
-            template: [
-                {
-                    role: 'system',
-                    content: 'Use the following context to answer the question:\n{{?groundingOutput}}',
-                },
-                { role: 'user', content: '{{?user_question}}' },
-            ],
-        },
-        grounding: {
-            type: 'document_grounding_service',
-            config: {
-                filters: [
-                    {
-                        id: 'vector',
-                        data_repository_type: 'vector',
-                        data_repositories: [process.env.GROUNDING_PIPELINE_ID!], // 👈 Add to .env
-                        search_config: {
-                            max_chunk_count: 5,
-                        },
-                    },
-                ],
-                input_params: ['user_question'],
-                output_param: 'groundingOutput',
-            },
-        },
+  {
+    promptTemplating: {
+      model: {
+        name: process.env.MODEL_NAME!,
+        params: {},
+      },
+      prompt: {
+        template: [
+          {
+            role: "system",
+            content:
+              "Use the following context to answer the question:\n{{?groundingOutput}}",
+          },
+          { role: "user", content: "{{?user_question}}" },
+        ],
+      },
     },
-    { resourceGroup: process.env.RESOURCE_GROUP },
-)
+    grounding: {
+      type: "document_grounding_service",
+      config: {
+        filters: [
+          {
+            id: "vector",
+            data_repository_type: "vector",
+            data_repositories: [process.env.GROUNDING_PIPELINE_ID!], // 👈 Add to .env
+            search_config: {
+              max_chunk_count: 5,
+            },
+          },
+        ],
+        placeholders: {
+          input: ["user_question"],
+          output: "groundingOutput",
+        },
+      },
+    },
+  },
+  { resourceGroup: process.env.RESOURCE_GROUP },
+);
 
-export async function callGroundingServiceTool(user_question: string): Promise<string> {
-    try {
-        const response = await groundingClient.chatCompletion({
-            inputParams: { user_question },
-        })
-        return response.getContent() ?? 'No response from grounding service'
-    } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error)
-        console.error('❌ Grounding service call failed:', errorMessage)
-        return `Error calling grounding service: ${errorMessage}`
-    }
+export async function callGroundingServiceTool(
+  user_question: string,
+): Promise<string> {
+  try {
+    const response = await groundingClient.chatCompletion({
+      placeholderValues: { user_question },
+    });
+    return response.getContent() ?? "No response from grounding service";
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("❌ Grounding service call failed:", errorMessage);
+    return `Error calling grounding service: ${errorMessage}`;
+  }
 }
 ```
 
 > 💡 **Understanding the grounding configuration:**
 >
 > **The template** defines the prompt structure with two special placeholders:
-> - `{{?user_question}}` — replaced with the user's question at call time (defined in `input_params`)
-> - `{{?groundingOutput}}` — replaced with the retrieved document chunks (defined in `output_param`)
+>
+> - `{{?user_question}}` — replaced with the user's question at call time (defined in `placeholders.input`)
+> - `{{?groundingOutput}}` — replaced with the retrieved document chunks (defined in `placeholders.output`)
 >
 > The `?` in `{{?variable}}` is required: it marks these as template parameters. Without it, the API returns a 400 error about "unused parameters".
 >
 > **The grounding config:**
+>
 > - `data_repositories: [process.env.GROUNDING_PIPELINE_ID!]` — points to your specific evidence pipeline
 > - `max_chunk_count: 5` — retrieve the top 5 most relevant document chunks
-> - `input_params: ['user_question']` — the template variable that carries the query into the retrieval system
-> - `output_param: 'groundingOutput'` — the template variable where retrieved chunks are injected
+> - `placeholders.input: ['user_question']` — the template variable that carries the query into the retrieval system
+> - `placeholders.output: 'groundingOutput'` — the template variable where retrieved chunks are injected
 >
-> **Why `inputParams` in `chatCompletion`?**
+> **Why `placeholderValues` in `chatCompletion`?**
 >
-> When using templating, you pass the template variable values via `inputParams` instead of `messages`. The SDK renders the template with these values before sending to the LLM:
+> When using a prompt template, you pass the template variable values via `placeholderValues`. The SDK renders the template with these values before sending to the LLM:
+>
 > ```typescript
-> // With templating — pass variable values
-> groundingClient.chatCompletion({ inputParams: { user_question } })
+> // With a template — pass variable values
+> groundingClient.chatCompletion({ placeholderValues: { user_question } })
 >
-> // Without templating — pass messages directly
+> // Without a template — pass messages directly
 > orchestrationClient.chatCompletion({ messages: [...] })
 > ```
 
@@ -301,13 +305,13 @@ GROUNDING_PIPELINE_ID="your-pipeline-id-here"
 👉 Import the grounding tool:
 
 ```typescript
-import { callRPT1Tool, callGroundingServiceTool } from './tools.js'
+import { callRPT1Tool, callGroundingServiceTool } from "./tools.js";
 ```
 
 👉 Update the `evidenceAnalystNode` to use the grounding service:
 
 ```typescript
-    private async evidenceAnalystNode(state: AgentState): Promise<Partial<AgentState>> {
+    private async evidenceAnalystNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
         console.log('\n🔍 Evidence Analyst starting...')
 
         try {
@@ -318,6 +322,7 @@ import { callRPT1Tool, callGroundingServiceTool } from './tools.js'
                 console.log(`  Searching evidence for: ${suspect}`)
                 const query = `Find evidence and information about ${suspect} related to the art theft`
                 const result = await callGroundingServiceTool(query)
+                console.log(`  Evidence found:\n${result}`)
                 evidenceResults.push(`Evidence for ${suspect}:\n${result}`)
             }
 
@@ -373,12 +378,12 @@ You integrated a grounding tool that:
 
 The grounding approach differs between the Python and TypeScript SDKs:
 
-| Python (gen_ai_hub)                    | TypeScript (SAP Cloud SDK for AI)                       |
-|----------------------------------------|---------------------------------------------------------|
-| `RetrievalAPIClient` + manual search   | Built into `OrchestrationClient` configuration          |
-| Returns raw JSON document chunks       | Returns LLM response with chunks injected as context    |
-| Agent receives JSON and reasons on it  | LLM reasons on chunks and returns a natural answer      |
-| More control over retrieval            | Simpler setup, fully managed pipeline                   |
+| Python (gen_ai_hub)                   | TypeScript (SAP Cloud SDK for AI)                    |
+| ------------------------------------- | ---------------------------------------------------- |
+| `RetrievalAPIClient` + manual search  | Built into `OrchestrationClient` configuration       |
+| Returns raw JSON document chunks      | Returns LLM response with chunks injected as context |
+| Agent receives JSON and reasons on it | LLM reasons on chunks and returns a natural answer   |
+| More control over retrieval           | Simpler setup, fully managed pipeline                |
 
 In the TypeScript approach, the orchestration pipeline handles the retrieval **and** the LLM response in one call. You get a polished natural language answer instead of raw JSON chunks.
 
@@ -388,7 +393,7 @@ In the TypeScript approach, the orchestration pipeline handles the retrieval **a
 
 - **Grounding in SAP Cloud SDK for AI** is configured directly in `OrchestrationClient` — no separate retrieval client needed
 - **`{{?variable}}` syntax** (with `?`) is required for template parameters — the `?` marks them as template placeholders
-- **`inputParams`** in `chatCompletion()` passes template variable values when using the templating feature
+- **`placeholderValues`** in `chatCompletion()` passes template variable values when using a prompt template
 - **Module-level client initialization** prevents repeated SDK warnings when the grounding tool is called in a loop
 - **`response.getContent()`** extracts the LLM's text response. Never use `JSON.stringify()` on the response object itself (it contains HTTP connection references that cause circular structure errors).
 
@@ -420,9 +425,9 @@ In the TypeScript approach, the orchestration pipeline handles the retrieval **a
 
 - **Solution**: You're trying to `JSON.stringify()` the entire `OrchestrationResponse` object. Use `response.getContent()` instead to extract just the text content.
 
-**Issue**: `inputParams is not a valid property`
+**Issue**: `placeholderValues is not a valid property`
 
-- **Solution**: Make sure you're using the correct overload of `chatCompletion()`. When using templating, pass `{ inputParams: { user_question } }` instead of `{ messages: [...] }`.
+- **Solution**: Make sure you're using the correct overload of `chatCompletion()`. When using a prompt template, pass `{ placeholderValues: { user_question } }` instead of `{ messages: [...] }`.
 
 **Issue**: Evidence analyst logs show suspect names out of order
 

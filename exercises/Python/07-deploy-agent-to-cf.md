@@ -175,13 +175,31 @@ class InvestigatorExecutor(AgentExecutor):
 > **Step 5 — Signal `completed`**
 > `final=True` closes the task. The caller knows it can stop waiting.
 
-#### Part 3: The Agent Card and App Assembly
+
+#### Part 3: Resolve the App URL
+
+This snippet detects whether the app is running on Cloud Foundry or locally, and sets `app_url` accordingly.
+
+```python
+app_url = (
+    lambda d: f"https://{d.get('application_uris', [])[0]}"
+    if d.get("application_uris")
+    else None
+)(json.loads(os.environ.get("VCAP_APPLICATION", "{}")))
+if not app_url: app_url = "http://localhost:8080"
+```
+
+> 💡 **How URL detection works:**
+>
+> Cloud Foundry injects a `VCAP_APPLICATION` environment variable containing a JSON object with metadata about the running app, including `application_uris` — the list of public routes assigned to it. When that variable is present, the first URI is used to build the `https://` URL. When running locally, `VCAP_APPLICATION` is absent, so `app_url` falls back to `http://localhost:8080`.
+
+#### Part 4: The Agent Card and App Assembly
 
 ```python
 agent_card = AgentCard(
     name="Investigator Crew",
     description="Multi-agent art theft investigation crew exposed as an A2A server",
-    url=os.environ.get("APP_URL", "http://localhost:8080"),
+    url=app_url,
     version="1.0.0",
     capabilities=AgentCapabilities(streaming=False),
     skills=[
@@ -224,13 +242,11 @@ if __name__ == "__main__":
 
 > 💡 **Understanding the Agent Card:**
 >
-> The `AgentCard` is the agent's public identity. When another agent or client calls `GET /.well-known/agent.json` on your server, it receives this document. It describes:
+> The `AgentCard` is the agent's public identity. When another agent or client calls `GET /.well-known/agent-card.json` on your server, it receives this document. It describes:
 > - **What the agent is** (`name`, `description`, `version`)
-> - **Where it lives** (`url` — important to set correctly when deployed)
+> - **Where it lives** (`url` — automatically set from `VCAP_APPLICATION` when deployed to CF, falls back to `localhost` otherwise)
 > - **What it can do** (`skills`) — each skill has an ID, description, and declared input/output formats
 > - **Whether it streams** (`capabilities.streaming=False`) — we return results all at once, not as a stream
->
-> The `url` field reads from the `APP_URL` environment variable. This is important: once deployed to CF, you'll set `APP_URL` to your app's public URL so that callers can discover and reach your agent correctly.
 >
 > **The `/health` endpoint** is required by Cloud Foundry to verify the app started successfully. CF polls it after deployment — if it doesn't return `200 OK`, the deployment fails.
 
@@ -274,9 +290,11 @@ Cloud Foundry uses a `manifest.yml` file to know how to run your application. Th
 
 👉 Create a new file [`/project/Python/starter-project/manifest.yml`](/project/Python/starter-project/manifest.yml) at the root of your starter project.
 
+> 💡 The `name` field below is a placeholder — the `cf push` command will override it automatically using your BAS login.
+
 ```yaml
 applications:
-  - name: investigator-crew-a2a
+  - name: investigator-crew-<YOUR NAME>
     memory: 1024M
     disk_quota: 2048M
     instances: 1
@@ -289,7 +307,6 @@ applications:
     services:
       - generative-ai-hub
     env:
-      APP_URL: https://<YOUR_APP_URL_HERE>
       LITELLM_PROVIDER: sap
       AICORE_RESOURCE_GROUP: ai-agents-codejam
       RPT1_DEPLOYMENT_URL: <YOUR_RPT1_DEPLOYMENT_URL>
@@ -297,8 +314,7 @@ applications:
       BP_PYTHON_VERSION: "3.13.11"
 ```
 
-> ⚠️ **You must replace the placeholder values:**
-> - `APP_URL` — The public URL CF will assign to your app. You'll get this after the first `cf push`. For now, leave a placeholder and update it after deploying.
+> ⚠️ **You must replace the placeholder value:**
 > - `RPT1_DEPLOYMENT_URL` — The same deployment URL you used in Exercise 03. Copy it from your local `.env` file.
 
 > 💡 **Understanding each field:**
@@ -314,17 +330,16 @@ applications:
 > | `health-check-http-endpoint` | The path CF polls. Must return `200 OK`. |
 > | `timeout` | How many seconds CF waits for the health check to pass before failing the deployment. 180s gives the app time to install packages and load models. |
 > | `command` | The startup command. `$PORT` is injected by CF — your app must listen on this port. |
-> | `services` | CF service instances to bind. `generative-ai-hub` injects SAP AI Core credentials as environment variables automatically. |
-> | `env` | Static environment variables. These override or supplement what the service binding provides. |
+> | `services` | CF service instances to bind. `generative-ai-hub` injects SAP AI Core credentials as environment variables automatically. |> | `env` | Static environment variables. These override or supplement what the service binding provides. The app URL is detected automatically from `VCAP_APPLICATION` at runtime — no need to set it here. |
 
 > 💡 **Why `--workers 1`?**
-> CrewAI is CPU and memory intensive — each worker would be capable of running a full crew execution in parallel. With limited memory (512M–1024M), multiple concurrent crew runs would exhaust available RAM. One worker keeps resource usage predictable and safe for this deployment.
+> CrewAI is CPU and memory intensive — each worker would be capable of running a full crew execution in parallel. With limited memory (1024M), multiple concurrent crew runs would exhaust available RAM. One worker keeps resource usage predictable and safe for this deployment.
 
 ### Step 2: Create runtime.txt
 
 CF's Python buildpack reads `runtime.txt` to know which Python version to install.
 
-👉 Create a new file [`/project/Python/starter-project/runtime.txt`](/project/Python/starter-project/runtime.txt):
+👉 Create a new file [`/project/Python/starter-project/runtime.txt`](/project/Python/starter-project/runtime.txt) and add the following line to it:
 
 ```
 python-3.13.x
@@ -342,8 +357,10 @@ Your local `.env` file contains API keys and credentials. You must not push it t
 
 ```
 .env
+.venv/
 __pycache__/
 *.pyc
+*.pyo
 .python-version
 ```
 
@@ -358,24 +375,43 @@ __pycache__/
 👉 Open a terminal and log in to your SAP BTP CF environment:
 
 ```bash
-cf login -a https://api.cf.eu10-004.hana.ondemand.com --sso --origin a7rg4vxjp.accounts.ondemand.com
+cf login -a https://api.cf.eu10-004.hana.ondemand.com --origin a7rg4vxjp-platform
+```
+👉 Use the credentials provided in the system access email.
+```
+Email: cd-agents-###
+Password: *******
 ```
 
-> The `--sso` flag opens a browser tab where you authenticate. The `--origin` flag ensures CF redirects you to the correct custom identity provider for this CodeJam.
+> The `--origin` flag ensures CF redirects you to the correct custom identity provider for this CodeJam.
 
 👉 Select the correct **org** and **space** when prompted.
 
 ### Step 2: Push the App
 
-👉 From your starter-project folder, run:
+👉 Navigate to your starter-project folder in the terminal:
 
 ```bash
-# macOS / Linux
-cf push
-
-# Windows (PowerShell / Command Prompt)
-cf push
+cd project/Python/starter-project
 ```
+
+👉 Push the app with a single command that automatically derives your app name from your BAS login:
+
+```bash
+# BAS / macOS / Linux (bash)
+cf push "investigator-crew-$(echo "$USER_NAME" | cut -d '@' -f 1 | tr -d '.')"
+```
+
+```powershell
+# Windows (PowerShell) — if running cf locally without BAS
+cf push "investigator-crew-yourname"
+```
+
+> 💡 **What this command does:**
+>
+> `$USER_NAME` is an environment variable automatically set by SAP Business Application Studio to your login email (e.g. `nora.von.thenen@sap.com`). The shell expression strips the domain (`cut -d '@' -f 1`) and removes any dots (`tr -d '.'`), producing a clean app name like `investigator-crew-noravonthenen`. This overrides the `name` field in `manifest.yml` so you don't have to edit the file manually.
+>
+> On Windows without BAS, `$USER_NAME` is not available — just replace `yourname` with your own identifier.
 
 CF will:
 1. Upload your project files (excluding anything in `.cfignore`)
@@ -390,29 +426,10 @@ CF will:
 Once the push succeeds, CF prints the app URL:
 
 ```
-name:              investigator-crew-a2a
+name:              investigator-crew-<YOUR NAME>
 requested state:   started
-routes:            investigator-crew-a2a-<to be determined>.cfapps.eu10-004.hana.ondemand.com
+routes:            investigator-crew-<YOUR NAME>-<to be determined>.cfapps.eu10-004.hana.ondemand.com
 ```
-
-👉 Copy the route URL.
-
-### Step 4: Update APP_URL in manifest.yml
-
-👉 Open [`/project/Python/starter-project/manifest.yml`](/project/Python/starter-project/manifest.yml) and replace the placeholder:
-
-```yaml
-env:
-  APP_URL: https://investigator-crew-a2a-<random>.cfapps.eu10-004.hana.ondemand.com
-```
-
-👉 Push again so the Agent Card serves the correct URL:
-
-```bash
-cf push
-```
-
-> 💡 **Why does the URL matter?** Other agents discover your agent by fetching `/.well-known/agent.json`. That document contains the `url` field — if it points to `localhost`, remote callers can't reach you.
 
 ---
 
@@ -432,13 +449,13 @@ You should see your agent's description:
 {
   "name": "Investigator Crew",
   "description": "Multi-agent art theft investigation crew exposed as an A2A server",
-  "url": "https://investigator-crew-a2a-<random>.cfapps.eu10-004.hana.ondemand.com",
+  "url": "https://investigator-crew-<YOUR NAME>-<random>.cfapps.eu10-004.hana.ondemand.com",
   "version": "1.0.0",
   "skills": [...]
 }
 ```
 
-> 💡 The SDK also serves the Agent Card at `/.well-known/agent-card.json` for backwards compatibility, so both paths work.
+> 💡 The Agent Card is served at `/.well-known/agent-card.json`.
 
 ### Check the Health Endpoint
 
@@ -451,7 +468,7 @@ Expected response: `{"status": "ok"}`
 ### Check your Agent in the A2A Editor
 👉 Open the [A2A Editor](https://open-resource-discovery.github.io/a2a-editor/playground/)
 
-👉 Add your agent by pasting the URL: `https://<YOUR_APP_URL>/.well-known/agent-card.json``
+👉 Add your agent by pasting the URL: `https://<YOUR_APP_URL>/.well-known/agent-card.json`
 
 👉 Open the Chat and paste: 
 ```json
@@ -466,7 +483,7 @@ Expected response: `{"status": "ok"}`
 If something went wrong during startup:
 
 ```bash
-cf logs investigator-crew-a2a --recent
+cf logs investigator-crew-<YOUR NAME> --recent
 ```
 
 ---
@@ -477,25 +494,22 @@ cf logs investigator-crew-a2a --recent
 
 You now have a live, publicly reachable multi-agent system:
 
-```text
-Internet
-    │
-    ▼
-CF Router → investigator-crew-a2a (uvicorn / FastAPI)
-                │
-                ├── GET  /.well-known/agent-card.json  → AgentCard
-                ├── GET  /.well-known/agent.json        → AgentCard (backwards compat)
-                ├── GET  /health                        → {"status": "ok"}
-                └── POST /                              → A2A JSON-RPC handler
-                                                              │
-                                                              ▼
-                                                      InvestigatorExecutor
-                                                              │
-                                                              ▼
-                                                      InvestigatorCrew
-                                                      ├── Appraiser Agent (RPT-1)
-                                                      ├── Evidence Analyst (Grounding)
-                                                      └── Lead Detective (GPT-4o)
+```mermaid
+flowchart TD
+    Internet --> CFRouter["CF Router"]
+    CFRouter --> App["investigator-crew-YOUR-NAME\nuvicorn / FastAPI"]
+
+    App --> EP1["GET /.well-known/agent-card.json → AgentCard"]
+    App --> EP2["GET /.well-known/agent.json → AgentCard (backwards compat)"]
+    App --> EP3["GET /health → {status: ok}"]
+    App --> EP4["POST / → A2A JSON-RPC handler"]
+
+    EP4 --> Executor["InvestigatorExecutor"]
+    Executor --> Crew["InvestigatorCrew"]
+
+    Crew --> A1["Appraiser Agent (RPT-1)"]
+    Crew --> A2["Evidence Analyst (Grounding)"]
+    Crew --> A3["Lead Detective (GPT-4o)"]
 ```
 
 ### How CF Manages Your App
@@ -517,7 +531,7 @@ CF Router → investigator-crew-a2a (uvicorn / FastAPI)
 - **`run_in_executor`** is essential: CrewAI is synchronous, so you must offload it to a thread to keep the async server responsive
 - **`manifest.yml`** replaces both the Procfile and manual `cf` commands — it's the single source of truth for deployment
 - **`.cfignore`** prevents sensitive files (`.env`) from being uploaded to CF
-- **`APP_URL`** in the Agent Card must match the actual deployed URL so other agents can discover you
+- **`VCAP_APPLICATION`** provides the public URL at runtime — the Agent Card picks it up automatically, no manual `APP_URL` env var needed
 
 ---
 
@@ -538,7 +552,7 @@ CF Router → investigator-crew-a2a (uvicorn / FastAPI)
 
 **Issue**: `cf push` fails with `health check failed`
 
-- **Solution**: Check `cf logs investigator-crew-a2a --recent`. Common causes:
+- **Solution**: Check `cf logs investigator-crew-<YOUR NAME> --recent`. Common causes:
   - Missing `requirements.txt` dependency
   - Import error in `server.py` or `investigator_crew.py`
   - Service binding not found — verify the service name matches exactly (`generative-ai-hub`)
@@ -549,11 +563,11 @@ CF Router → investigator-crew-a2a (uvicorn / FastAPI)
 
 **Issue**: `/.well-known/agent-card.json` returns a wrong URL
 
-- **Solution**: Update `APP_URL` in `manifest.yml` with the actual CF route and run `cf push` again.
+- **Solution**: The app URL is detected automatically from `VCAP_APPLICATION` at runtime. If it's wrong, check that the app was pushed successfully and that CF has assigned a route. Run `cf apps` to verify the route, then check `cf logs investigator-crew-<YOUR NAME> --recent` for errors.
 
 **Issue**: App crashes immediately after startup
 
-- **Solution**: You likely have a missing environment variable. Check `cf logs investigator-crew-a2a --recent` for `KeyError` or `AttributeError`. Verify all `env:` values in `manifest.yml` are set, especially `RPT1_DEPLOYMENT_URL`.
+- **Solution**: You likely have a missing environment variable. Check `cf logs investigator-crew-<YOUR NAME> --recent` for `KeyError` or `AttributeError`. Verify all `env:` values in `manifest.yml` are set, especially `RPT1_DEPLOYMENT_URL`.
 
 **Issue**: `.env` was accidentally uploaded and credentials are exposed
 
@@ -561,7 +575,7 @@ CF Router → investigator-crew-a2a (uvicorn / FastAPI)
 
 **Issue**: `Error: relation between task and context not found` when calling the agent
 
-- **Solution**: The app likely restarted and lost its in-memory task state. Ensure `--workers 1` is in your `command` and check `cf logs investigator-crew-a2a --recent` for unexpected restarts.
+- **Solution**: The app likely restarted and lost its in-memory task state. Ensure `--workers 1` is in your `command` and check `cf logs investigator-crew-<YOUR NAME> --recent` for unexpected restarts.
 
 ---
 

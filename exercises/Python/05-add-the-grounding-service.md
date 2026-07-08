@@ -173,7 +173,7 @@ Let's integrate this power into your agent!
 
 Now that you understand grounding, let's connect to the pre-configured pipeline with your evidence documents.
 
-👉 Open [SAP AI Launchpad](https://genai-codejam-luyq1wkg.ai-launchpad.prod.eu-central-1.aws.ai-prod.cloud.sap/aic/index.html#/workspaces&/a/detail/TwoColumnsMidExpanded/?workspace=api-connection&resourceGroup=s3-grounding)
+👉 Open [SAP AI Launchpad](https://genai-codejam-luyq1wkg.ai-launchpad.prod.eu-central-1.aws.ai-prod.cloud.sap/aic/index.html#/workspaces&/a/detail/TwoColumnsMidExpanded/?workspace=codejam&resourceGroup=ai-agents-codejam)
 
 #### Select The Resource Group
 
@@ -183,7 +183,7 @@ SAP AI Core tenants use [resource groups](https://help.sap.com/docs/sap-ai-core/
 
 👉 Go to **Workspaces**.
 
-👉 Select your workspace (like `codejam-aicore-connection`) and your resource group `ai-agents-codejam`.
+👉 Select your workspace `codejam` and your resource group `ai-agents-codejam`.
 
 👉 Make sure it is set as a context. The proper name of the context, like `codejam-aicore-connection (ai-agents-codejam)` should show up at the top next to SAP AI Launchpad.
 
@@ -427,8 +427,16 @@ You integrated a grounding service tool with your agent that:
 
 ### The Grounding Flow
 
-```text
-User Query → LLM Reasoning → Agent Processing → Grounding Tool Call → Vector Search → Document Chunks → Agent Processing → LLM Reasoning → Output
+```mermaid
+flowchart LR
+    A[User Query] --> B[LLM Reasoning]
+    B --> C[Agent Processing]
+    C --> D[Grounding Tool Call]
+    D --> E[Vector Search]
+    E --> F[Document Chunks]
+    F --> G[Agent Processing]
+    G --> H[LLM Reasoning]
+    H --> I[Output]
 ```
 
 ### Why This Matters

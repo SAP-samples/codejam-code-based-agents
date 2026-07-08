@@ -115,35 +115,41 @@ if __name__ == "__main__":
 
 **From repository root:**
 
+_macOS / Linux / BAS_
+
 ```bash
-# macOS / Linux / BAS
-python3 ./basic_agent.py
+python3 ./project/Python/starter-project/basic_agent.py
 ```
+
+_Windows (PowerShell)_
 
 ```powershell
-# Windows (PowerShell)
-python .\basic_agent.py
+python .\project\Python\starter-project\basic_agent.py
 ```
 
+_Windows (Command Prompt)_
+
 ```cmd
-# Windows (Command Prompt)
-python .\basic_agent.py
+python .\project\Python\starter-project\basic_agent.py
 ```
 
 **From starter-project folder:**
 
+_macOS / Linux / BAS_
+
 ```bash
-# macOS / Linux
 python3 basic_agent.py
 ```
 
+_Windows (PowerShell)_
+
 ```powershell
-# Windows (PowerShell)
 python basic_agent.py
 ```
 
+_Windows (Command Prompt)_
+
 ```cmd
-# Windows (Command Prompt)
 python basic_agent.py
 ```
 

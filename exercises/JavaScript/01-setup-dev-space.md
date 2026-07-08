@@ -1,8 +1,8 @@
 # Setup SAP Business Application Studio and Your Development Space
 
-> [SAP Business Application Studio](https://help.sap.com/docs/bas/sap-business-application-studio/what-is-sap-business-application-studio) is based on Code-OSS, an open-source project used for building Visual Studio Code. Available as a cloud service, SAP Business Application Studio (BAS) provides a desktop-like experience similar to leading IDEs, with command line and optimized editors.
+[SAP Business Application Studio](https://help.sap.com/docs/bas/sap-business-application-studio/what-is-sap-business-application-studio) is based on Code-OSS, an open-source project used for building Visual Studio Code. Available as a cloud service, SAP Business Application Studio (BAS) provides a desktop-like experience similar to leading IDEs, including a terminal and optimized editors for SAP development.
 
-> At the heart of SAP Business Application Studio are the dev spaces. Dev spaces are comparable to isolated virtual machines in the cloud containing tailored tools and pre-installed runtimes per business scenario. This simplifies and speeds up the setup of your development environment, enabling you to efficiently develop, test, build, and run your solutions locally or in the cloud.
+BAS is utilizing the concept of development spaces (dev spaces). Dev spaces are comparable to isolated virtual machines in the cloud containing tailored tools and pre-installed runtimes, such as SAP Fiori, SAP S/4HANA extensions, Workflow, HANA native development and more.. This simplifies and speeds up the setup of your development environment, enabling you to efficiently develop, test, build, and run your solutions in BAS or in the cloud.
 
 ## Open SAP Business Application Studio
 
@@ -18,7 +18,7 @@
 
 ![Create a Dev Space 1](/exercises/data/images/bas.png)
 
-👉 Enter the name `GenAICodeJam_XX`, select the `Basic` kind of application, and choose `Node.js` from Additional SAP Extensions.
+👉 Enter the name of the dev space `GenAICodeJam_XX`, select the `Basic` kind of application and `Python Tools` from `Additional SAP Extensions`.
 
 > Replace `XX` with your initials.
 
