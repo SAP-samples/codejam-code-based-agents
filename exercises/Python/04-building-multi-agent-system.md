@@ -298,35 +298,35 @@ analyze_evidence_task:
 
 **From repository root:**
 
+_macOS / Linux_
 ```bash
-# macOS / Linux
 python3 ./project/Python/starter-project/main.py
 ```
 
+_Windows (PowerShell)_
 ```powershell
-# Windows (PowerShell)
 python .\project\Python\starter-project\main.py
 ```
 
+_Windows (Command Prompt)_
 ```cmd
-# Windows (Command Prompt)
 python .\project\Python\starter-project\main.py
 ```
 
 **From starter-project folder:**
 
+_macOS / Linux_
 ```bash
-# macOS / Linux
 python3 main.py
 ```
 
+_Windows (PowerShell)_
 ```powershell
-# Windows (PowerShell)
 python main.py
 ```
 
+_Windows (Command Prompt)_
 ```cmd
-# Windows (Command Prompt)
 python main.py
 ```
 
