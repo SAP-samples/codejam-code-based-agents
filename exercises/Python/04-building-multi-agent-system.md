@@ -26,13 +26,13 @@ Instead of defining agents and tasks directly in Python code, we'll move them to
 # agents.yaml
 appraiser_agent:
   role: >
-    Loss Appraiser
+    Stolen Goods Loss Appraiser
   goal: >
-    Predict the missing values of stolen items using the RPT-1 model via the call_rpt1 tool.
-    Use the payload data from inputs: {payload}
+    Predict the monetary value of stolen items ONLY by calling the call_rpt1 tool with payload {payload}.
+    Do NOT invent or estimate values yourself. If the tool call fails, report the failure.
   backstory: >
-    You are an expert insurance appraiser specializing in fine art valuation and theft assessment.
-  llm: sap/gpt-4o
+    You are an insurance appraiser who relies strictly on model predictions. You never guess values.
+  llm: sap/anthropic--claude-4.5-opus
 ```
 
 > 💡 **What's happening here?** We're taking the agent definition from your `basic_agent.py` file (the `role`, `goal`, `backstory`, and `llm` parameters) and moving them to this YAML file. The `>` symbol in YAML allows multi-line text.

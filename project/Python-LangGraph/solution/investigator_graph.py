@@ -173,11 +173,14 @@ def intelligence_researcher_node(state: AgentState) -> dict:
         pattern_result = call_sonar_pro_search(pattern_query)
         intelligence_results.append(f"Similar Art Theft Patterns:\n{pattern_result}")
 
-        intelligence_report = (
-            "Intelligence Research Complete:\n\n" + "\n\n".join(intelligence_results) +
-            f"\n\nSummary: Conducted OSINT research on all suspects and identified similar crime patterns"
-        )
+        raw_results = "Intelligence Research Complete:\n\n" + "\n\n".join(intelligence_results)
 
+        response = model.invoke([
+            SystemMessage(content=WEB_RESEARCHER_AGENT["prompt"]),
+            HumanMessage(content=f"Here are the web search results. Write a concise intelligence report:\n\n{raw_results}"),
+        ])
+
+        intelligence_report = response.content
         print("✅ Intelligence research complete")
 
         return {

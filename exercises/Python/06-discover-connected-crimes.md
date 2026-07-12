@@ -246,17 +246,6 @@ research_criminal_network:
         )
 ```
 
-👉 Also update the `solve_crime` task to use all three sources:
-
-```python
-    @task
-    def solve_crime(self) -> Task:
-        return Task(
-            config=self.tasks_config['solve_crime'],
-            context=[self.appraise_loss_task(), self.analyze_evidence_task(), self.research_criminal_network()]
-        )
-```
-
 > 💡 **Method Positioning Matters!**
 >
 > Your class should now have this order:

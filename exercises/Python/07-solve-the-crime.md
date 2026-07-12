@@ -57,25 +57,27 @@ Now you'll add the Lead Detective Agent and its task to your investigator crew. 
     def solve_crime(self) -> Task:
         return Task(
             config=self.tasks_config['solve_crime'],
-            context=[self.appraise_loss_task(), self.analyze_evidence_task()]  # 👈 Lead detective uses results from other tasks
+            context=[self.appraise_loss_task(), self.analyze_evidence_task(), self.research_criminal_network()]  # 👈 Lead detective uses results from all three tasks
         )
 ```
 
-> 💡 **Where to place this code**: Add these methods inside the `InvestigatorCrew` class, after your `analyze_evidence_task()` method. The final order should be:
+> 💡 **Where to place this code**: Add these methods inside the `InvestigatorCrew` class, after your `research_criminal_network()` method from Exercise 06. The final order should be:
 >
 > 1. `appraiser_agent()` method
 > 2. `appraise_loss_task()` method
 > 3. `evidence_analyst_agent()` method
 > 4. `analyze_evidence_task()` method
-> 5. **👈 Add `lead_detective_agent()` here**
-> 6. **👈 Add `solve_crime()` here**
-> 7. `crew()` method (keep at the end)
+> 5. `intelligence_researcher_agent()` method (added in Exercise 06)
+> 6. `research_criminal_network()` method (added in Exercise 06)
+> 7. **👈 Add `lead_detective_agent()` here**
+> 8. **👈 Add `solve_crime()` here**
+> 9. `crew()` method (keep at the end)
 
 > 💡 **Understanding the `context` parameter:**
 >
-> - `context=[self.appraise_loss_task(), self.analyze_evidence_task()]` tells CrewAI that the `solve_crime` task depends on the other two tasks
-> - The Lead Detective will receive the output from both the Loss Appraiser and Evidence Analyst
-> - This enables the detective to combine financial predictions with evidence analysis to solve the crime
+> - `context=[self.appraise_loss_task(), self.analyze_evidence_task(), self.research_criminal_network()]` tells CrewAI that the `solve_crime` task depends on all three preceding tasks
+> - The Lead Detective will receive the output from the Loss Appraiser, Evidence Analyst, and Intelligence Researcher
+> - This enables the detective to combine financial predictions, evidence analysis, and criminal network intelligence to solve the crime
 
 ### Step 4: Verify Crew Configuration
 
