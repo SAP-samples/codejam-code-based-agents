@@ -67,3 +67,41 @@ export async function callGroundingServiceTool(user_question: string): Promise<s
     return `Error calling grounding service: ${errorMessage}`;
   }
 }
+
+const webSearchClient = new OrchestrationClient(
+  {
+    promptTemplating: {
+      model: {
+        name: "sonar-pro",
+        params: {
+          temperature: 0.2,
+        },
+      },
+      prompt: {
+        template: [
+          {
+            role: "system",
+            content:
+              "You are a web search assistant specializing in criminal intelligence. Search for accurate, recent information and always provide source citations with URLs and dates.",
+          },
+          { role: "user", content: "{{?search_query}}" },
+        ],
+      },
+    },
+  },
+  { resourceGroup: process.env.RESOURCE_GROUP },
+);
+
+export async function callSonarProSearchTool(search_query: string): Promise<string> {
+  try {
+    const response = await webSearchClient.chatCompletion({
+      placeholderValues: { search_query },
+    });
+    return response.getContent() ?? "No search results found";
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("❌ Sonar-pro web search failed:", errorMessage);
+    if (error instanceof Error && error.stack) console.error(error.stack);
+    return `Error calling sonar-pro web search: ${errorMessage}`;
+  }
+}

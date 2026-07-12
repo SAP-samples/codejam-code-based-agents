@@ -126,7 +126,7 @@ The Lead Detective node receives `appraisal_result` and `evidence_analysis` from
 3. ✅ Build a multi-agent graph with Lead Detective and specialist agents
 4. ✅ Add the Grounding Service
 5. ✅ Solve the crime (this exercise)
-6. 📌 [Deploy to Cloud Foundry with A2A](07-deploy-agent-to-cf.md)
+6. 📌 [Deploy to Cloud Foundry with A2A](08-deploy-agent-to-cf.md)
 
 ---
 
@@ -144,4 +144,4 @@ The Lead Detective node receives `appraisal_result` and `evidence_analysis` from
 
 - **Solution**: The supervisor ran out of turns. This can happen with very long evidence reports. Try reducing `maxChunkCount` from 5 to 3 in `call_grounding_service`.
 
-[Next exercise](07-deploy-agent-to-cf.md)
+[Next exercise](08-deploy-agent-to-cf.md)

@@ -40,6 +40,10 @@ export const AgentState = Annotation.Root({
     reducer: (_, update) => update,
     default: () => undefined,
   }),
+  intelligence_report: Annotation<string | undefined>({
+    reducer: (_, update) => update,
+    default: () => undefined,
+  }),
   final_conclusion: Annotation<string | undefined>({
     reducer: (_, update) => update,
     default: () => undefined,

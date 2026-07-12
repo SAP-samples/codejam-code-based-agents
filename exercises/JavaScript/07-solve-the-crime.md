@@ -280,7 +280,7 @@ You've successfully built a sophisticated multi-agent AI investigation system in
 4. ✅ [Add custom tools](03-add-your-first-tool.md) (RPT-1 model integration)
 5. ✅ [Build a multi-agent workflow](04-building-multi-agent-system.md)
 6. ✅ [Integrate the Grounding Service](05-add-the-grounding-service.md)
-7. ✅ [Solve the museum art theft mystery](06-solve-the-crime.md) (this exercise)
+7. ✅ [Solve the museum art theft mystery](07-solve-the-crime.md) (this exercise)
 
 ---
 

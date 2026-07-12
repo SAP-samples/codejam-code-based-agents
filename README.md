@@ -50,7 +50,10 @@ If you are unsure which path to choose, ask the instructor for guidance.
 - [Exercise 03 - Build your first agent tool](./exercises/Python/03-add-your-first-tool.md)
 - [Exercise 04 - Building a multi-agent system](./exercises/Python/04-building-multi-agent-system.md)
 - [Exercise 05 - Add the Grounding service](./exercises/Python/05-add-the-grounding-service.md)
-- [Exercise 06 - Use your AI Agents to solve the crime](./exercises/Python/06-solve-the-crime.md)
+- [Exercise 06 - Discover Connected Crimes with Web Search](./exercises/Python/06-discover-connected-crimes.md)
+- [Exercise 07 - Use your AI Agents to solve the crime](./exercises/Python/07-solve-the-crime.md)
+- [Exercise 08 - Deploy your agent to Cloud Foundry with A2A](./exercises/Python/08-deploy-agent-to-cf.md)
+- [Exercise 09 - Integrate your agent into SAP Joule](./exercises/Python/09-integrate-agent-into-joule.md)
 
 ### Python (LangGraph + LiteLLM)
 
@@ -60,8 +63,10 @@ If you are unsure which path to choose, ask the instructor for guidance.
 - [Exercise 03 - Build your first agent tool](./exercises/Python-LangGraph/03-add-your-first-tool.md)
 - [Exercise 04 - Building a multi-agent system](./exercises/Python-LangGraph/04-building-multi-agent-system.md)
 - [Exercise 05 - Add the Grounding service](./exercises/Python-LangGraph/05-add-the-grounding-service.md)
-- [Exercise 06 - Use your AI Agents to solve the crime](./exercises/Python-LangGraph/06-solve-the-crime.md)
-- [Exercise 07 - Deploy your agent to Cloud Foundry with A2A](./exercises/Python-LangGraph/07-deploy-agent-to-cf.md)
+- [Exercise 06 - Discover Connected Crimes with Web Search](./exercises/Python-LangGraph/06-discover-connected-crimes.md)
+- [Exercise 07 - Use your AI Agents to solve the crime](./exercises/Python-LangGraph/07-solve-the-crime.md)
+- [Exercise 08 - Deploy your agent to Cloud Foundry with A2A](./exercises/Python-LangGraph/08-deploy-agent-to-cf.md)
+- [Exercise 09 - Integrate your agent into SAP Joule](./exercises/Python-LangGraph/09-integrate-agent-into-joule.md)
 
 ### JavaScript (LangGraph + SAP Cloud SDK for AI)
 
@@ -71,8 +76,10 @@ If you are unsure which path to choose, ask the instructor for guidance.
 - [Exercise 03 - Build your first agent tool](./exercises/JavaScript/03-add-your-first-tool.md)
 - [Exercise 04 - Building a multi-agent system](./exercises/JavaScript/04-building-multi-agent-system.md)
 - [Exercise 05 - Add the Grounding service](./exercises/JavaScript/05-add-the-grounding-service.md)
-- [Exercise 06 - Use your AI Agents to solve the crime](./exercises/JavaScript/06-solve-the-crime.md)
-- [Exercise 07 - Deploy your agent to Cloud Foundry with A2A](./exercises/JavaScript/07-deploy-agent-to-cf-ts.md)
+- [Exercise 06 - Discover Connected Crimes with Web Search](./exercises/JavaScript/06-discover-connected-crimes.md)
+- [Exercise 07 - Use your AI Agents to solve the crime](./exercises/JavaScript/07-solve-the-crime.md)
+- [Exercise 08 - Deploy your agent to Cloud Foundry with A2A](./exercises/JavaScript/08-deploy-agent-to-cf-ts.md)
+- [Exercise 09 - Integrate your agent into SAP Joule](./exercises/JavaScript/09-integrate-agent-into-joule.md)
 
 The instructor will start you on the first exercise. Proceed to the next exercise once the instructor tells you to.
 

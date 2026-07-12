@@ -1,0 +1,12 @@
+schema_version: 3.28.0
+
+metadata:
+  namespace: joule.ext
+  name: investigator_capability
+  version: 1.0.0
+  display_name: Investigator_Capability
+  description: Capability containing the investigator graph agent for art theft investigation
+
+system_aliases:
+  INVESTIGATOR_AGENT:
+    destination: INVESTIGATOR_AGENT

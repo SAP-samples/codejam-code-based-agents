@@ -98,7 +98,7 @@ Your crew configuration should already be set from Exercise 04, but let's verify
 
 ### Step 5: Verify main.py (No Changes Needed)
 
-Your `main.py` from Exercise 04 should already be correct. It doesn't need any changes for Exercise 06!
+Your `main.py` from Exercise 04 should already be correct. It doesn't need any changes for Exercise 07!
 
 > 💡 **What's happening:** The same `main.py` that ran 2 agents in Exercise 04 will now automatically run all 3 agents (including your new Lead Detective). CrewAI collects all `@agent` and `@task` decorated methods automatically.
 

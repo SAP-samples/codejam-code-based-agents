@@ -24,7 +24,10 @@ Now that you understand the use case, choose your track and start the first exer
 - [Exercise 03 - Build your first agent tool](./Python/03-add-your-first-tool.md)
 - [Exercise 04 - Building a multi-agent system](./Python/04-building-multi-agent-system.md)
 - [Exercise 05 - Add the Grounding service](./Python/05-add-the-grounding-service.md)
-- [Exercise 06 - Use your AI Agents to solve the crime](./Python/06-solve-the-crime.md)
+- [Exercise 06 - Discover Connected Crimes with Web Search](./Python/06-discover-connected-crimes.md)
+- [Exercise 07 - Use your AI Agents to solve the crime](./Python/07-solve-the-crime.md)
+- [Exercise 08 - Deploy your agent to Cloud Foundry with A2A](./Python/08-deploy-agent-to-cf.md)
+- [Exercise 09 - Integrate your agent into SAP Joule](./Python/09-integrate-agent-into-joule.md)
 
 ### Python (LangGraph + LiteLLM)
 
@@ -34,8 +37,10 @@ Now that you understand the use case, choose your track and start the first exer
 - [Exercise 03 - Build your first agent tool](./Python-LangGraph/03-add-your-first-tool.md)
 - [Exercise 04 - Building a multi-agent system](./Python-LangGraph/04-building-multi-agent-system.md)
 - [Exercise 05 - Add the Grounding service](./Python-LangGraph/05-add-the-grounding-service.md)
-- [Exercise 06 - Use your AI Agents to solve the crime](./Python-LangGraph/06-solve-the-crime.md)
-- [Exercise 07 - Deploy your agent to Cloud Foundry with A2A](./Python-LangGraph/07-deploy-agent-to-cf.md)
+- [Exercise 06 - Discover Connected Crimes with Web Search](./Python-LangGraph/06-discover-connected-crimes.md)
+- [Exercise 07 - Use your AI Agents to solve the crime](./Python-LangGraph/07-solve-the-crime.md)
+- [Exercise 08 - Deploy your agent to Cloud Foundry with A2A](./Python-LangGraph/08-deploy-agent-to-cf.md)
+- [Exercise 09 - Integrate your agent into SAP Joule](./Python-LangGraph/09-integrate-agent-into-joule.md)
 
 ### JavaScript (LangGraph + SAP Cloud SDK for AI)
 
@@ -45,5 +50,7 @@ Now that you understand the use case, choose your track and start the first exer
 - [Exercise 03 - Build your first agent tool](./JavaScript/03-add-your-first-tool.md)
 - [Exercise 04 - Building a multi-agent system](./JavaScript/04-building-multi-agent-system.md)
 - [Exercise 05 - Add the Grounding service](./JavaScript/05-add-the-grounding-service.md)
-- [Exercise 06 - Use your AI Agents to solve the crime](./JavaScript/06-solve-the-crime.md)
-- [Exercise 07 - Deploy your agent to Cloud Foundry with A2A](./JavaScript/07-deploy-agent-to-cf-ts.md)
+- [Exercise 06 - Discover Connected Crimes with Web Search](./JavaScript/06-discover-connected-crimes.md)
+- [Exercise 07 - Use your AI Agents to solve the crime](./JavaScript/07-solve-the-crime.md)
+- [Exercise 08 - Deploy your agent to Cloud Foundry with A2A](./JavaScript/08-deploy-agent-to-cf-ts.md)
+- [Exercise 09 - Integrate your agent into SAP Joule](./JavaScript/09-integrate-agent-into-joule.md)

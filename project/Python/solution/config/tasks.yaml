@@ -7,7 +7,7 @@ appraise_loss_task:
 
 analyze_evidence_task:
   description: >
-    Analyze the evidence of the theft that you can access via the grounding tool. 
+    Analyze the evidence of the theft that you can access via the grounding tool.
     Provide any insights that can help in the investigation especially regarding alibis.
     Check the evidence for all three suspect names 1. Sophie Dubois, 2. Marcus Chen and
     3. Viktor Petrov and provide an analysis for each of them.
@@ -15,11 +15,37 @@ analyze_evidence_task:
     A detailed analysis of the evidence for each suspect, including any insights that can help in the investigation.
   agent: evidence_analyst_agent
 
+research_criminal_network:
+  description: >
+    Search the web for intelligence about the three suspects ({suspect_names}) and
+    related crimes. Use the call_sonar_pro_search tool to find:
+    1. Public criminal records or prior convictions for each suspect
+    2. Similar art theft incidents with the same modus operandi (insider job, no forced entry)
+    3. Connections to known art theft rings or criminal networks
+    4. News reports or public information about any of the suspects
+    5. Recent museum heists in Europe with similar patterns
+
+    Cross-reference your web findings with the internal evidence analyzed by the
+    evidence analyst. Focus on discovering whether this is an isolated incident or
+    part of a larger criminal operation.
+  expected_output: >
+    A comprehensive intelligence report containing:
+    - Background checks for all three suspects with web sources
+    - List of similar art thefts found online (dates, locations, MO)
+    - Evidence of criminal network connections (if any)
+    - Assessment: isolated incident vs. organized crime ring
+    - All findings MUST include web sources with URLs and dates
+  agent: intelligence_researcher_agent
+
 solve_crime:
   description: >
-    Find the thief from, the suspects by activating the evidence investigator agent and instructing him to look for the three suspects
-    using the grounding tool. He should find information on alibies and motives and return a report for you to analyze. And use the appraise_loss_task from
-    the appraiser agent to find the value of the stolen goods.
+    Find the thief among the suspects by reviewing:
+    1. The insurance appraisal values from the appraiser agent
+    2. The internal evidence analysis from the evidence analyst agent
+    3. The web intelligence report from the intelligence researcher agent
+
+    Synthesize all three sources to identify the culprit with high confidence.
+    Consider both internal evidence and external patterns/connections found online.
   expected_output: >
     The name of the thief and the total value of the stolen goods for the insurance.
   agent: lead_detective_agent

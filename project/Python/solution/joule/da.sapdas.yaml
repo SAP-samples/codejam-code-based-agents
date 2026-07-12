@@ -1,0 +1,7 @@
+schema_version: 1.4.0
+
+name: investigator_assistant
+
+capabilities:
+  - type: local
+    folder: ./investigator_capability

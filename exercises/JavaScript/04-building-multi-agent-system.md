@@ -355,7 +355,7 @@ npx tsx src/main.ts
 
 > 💡 **Note:** The Evidence Analyst currently produces placeholder output because it doesn't have access to real evidence documents yet. You'll connect it to the Grounding Service in Exercise 05.
 
-> 💡 **Expected output:** The final report will say "Investigation completed but no conclusion was reached." — this is intentional. The Lead Detective node that produces `final_conclusion` hasn't been added yet; you'll implement it in Exercise 06.
+> 💡 **Expected output:** The final report will say "Investigation completed but no conclusion was reached." — this is intentional. The Lead Detective node that produces `final_conclusion` hasn't been added yet; you'll implement it in Exercise 07.
 
 ---
 
@@ -417,7 +417,7 @@ When you call `workflow.kickoff(inputs)`:
 
 - **Collaboration** — Agents can build upon each other's work
   - Sequential processing allows later nodes to use earlier results via shared state
-  - The `context` pattern (used in Exercise 06) enables explicit data sharing
+  - The `context` pattern (used in Exercise 07) enables explicit data sharing
 
 - **Maintainability** — Clear separation of concerns
   - Agent "personality" (goals, roles) lives in `agentConfigs.ts`
@@ -464,7 +464,8 @@ The Evidence Analyst can't access actual evidence yet. In Exercise 05, you'll in
 4. ✅ [Add custom tools](03-add-your-first-tool.md) (RPT-1 model integration)
 5. ✅ [Build a multi-agent workflow](04-building-multi-agent-system.md) (this exercise)
 6. 📌 [Add the Grounding Service](05-add-the-grounding-service.md): Give your Evidence Analyst access to real documents
-7. 📌 [Solve the crime](06-solve-the-crime.md): Add a Lead Detective to combine findings and crack the case
+7. 📌 [Discover Connected Crimes](06-discover-connected-crimes.md): Add web search with Perplexity sonar-pro
+8. 📌 [Solve the crime](07-solve-the-crime.md): Add a Lead Detective to combine findings and crack the case
 
 ---
 

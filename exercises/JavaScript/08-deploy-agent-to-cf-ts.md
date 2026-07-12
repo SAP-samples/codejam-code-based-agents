@@ -311,9 +311,9 @@ function resolveAppUrl(): string {
 const APP_URL = process.env.APP_URL ?? resolveAppUrl();
 
 const agentCard = {
-  name: "Investigator Crew",
+  name: "Investigator Graph",
   description:
-    "Multi-agent art theft investigation workflow exposed as an A2A server",
+    "Multi-agent art theft investigation graph exposed as an A2A server",
   url: APP_URL,
   version: "1.0.0",
   protocolVersion: "0.3.0",
@@ -410,7 +410,7 @@ Cloud Foundry uses a `manifest.yml` file to know how to run your application. It
 
 ```yaml
 applications:
-  - name: investigator-crew-ts-<YOUR NAME>
+  - name: investigator-graph-ts-<YOUR NAME>
     memory: 512M
     disk_quota: 1024M
     instances: 1
@@ -527,9 +527,9 @@ CF will:
 Once the push succeeds, CF prints the assigned route:
 
 ```
-name:              investigator-crew-ts-<YOUR NAME>
+name:              investigator-graph-ts-<YOUR NAME>
 requested state:   started
-routes:            investigator-crew-ts-<YOUR NAME>-<random>.cfapps.eu10-004.hana.ondemand.com
+routes:            investigator-graph-ts-<YOUR NAME>-<random>.cfapps.eu10-004.hana.ondemand.com
 ```
 
 > ⚠️ **The first push can take a few minutes** — CF is downloading and installing all npm packages. Subsequent pushes are faster.
@@ -537,15 +537,15 @@ routes:            investigator-crew-ts-<YOUR NAME>-<random>.cfapps.eu10-004.han
 > 💡 **Monitoring the deployment:** `cf push` prints staging progress inline. To get more detail, open a second terminal and stream live logs while the push is running:
 >
 > ```bash
-> cf logs investigator-crew-ts-<YOUR NAME>
+> cf logs investigator-graph-ts-<YOUR NAME>
 > ```
 >
 > After the push completes (or fails), use these commands to investigate:
 >
 > ```bash
-> cf logs investigator-crew-ts-<YOUR NAME> --recent   # recent log output
-> cf app investigator-crew-ts-<YOUR NAME>             # current status and instance health
-> cf events investigator-crew-ts-<YOUR NAME>          # deployment and crash events
+> cf logs investigator-graph-ts-<YOUR NAME> --recent   # recent log output
+> cf app investigator-graph-ts-<YOUR NAME>             # current status and instance health
+> cf events investigator-graph-ts-<YOUR NAME>          # deployment and crash events
 > ```
 
 > 💡 The app reads its public URL from `VCAP_APPLICATION` at startup — a JSON object CF injects into every running app containing the assigned routes. The Agent Card always serves the correct URL automatically.
@@ -568,9 +568,9 @@ You should see your agent's description:
 
 ```json
 {
-  "name": "Investigator Crew",
-  "description": "Multi-agent art theft investigation workflow exposed as an A2A server",
-  "url": "https://investigator-crew-ts-<YOUR NAME>-<random>.cfapps.eu10-004.hana.ondemand.com",
+  "name": "Investigator Graph",
+  "description": "Multi-agent art theft investigation graph exposed as an A2A server",
+  "url": "https://investigator-graph-ts-<YOUR NAME>-<random>.cfapps.eu10-004.hana.ondemand.com",
   "version": "1.0.0",
   "skills": [...]
 }
@@ -610,7 +610,7 @@ Expected response: `{"status":"ok"}`
 If something went wrong during startup:
 
 ```bash
-cf logs investigator-crew-ts-<YOUR NAME> --recent
+cf logs investigator-graph-ts-<YOUR NAME> --recent
 ```
 
 ---
@@ -625,7 +625,7 @@ You now have a live, publicly reachable multi-agent system:
 flowchart TD
     Internet([Internet])
     Router[CF Router]
-    App["investigator-crew-ts-YOUR-NAME\nNode.js / Express"]
+    App["investigator-graph-ts-YOUR-NAME\nNode.js / Express"]
     Card["AgentCard\n/.well-known/agent.json"]
     Health["Health check\n/health"]
     JSONRPC["A2A JSON-RPC handler\nPOST /"]
@@ -686,8 +686,9 @@ flowchart TD
 3. ✅ [Add custom tools](03-add-your-first-tool.md)
 4. ✅ [Build a multi-agent system](04-building-multi-agent-system.md)
 5. ✅ [Add the Grounding Service](05-add-the-grounding-service.md)
-6. ✅ [Solve the crime](06-solve-the-crime.md)
-7. ✅ [Deploy your agent to CF with A2A](07-deploy-agent-to-cf-ts.md) (this exercise)
+6. ✅ [Discover Connected Crimes](06-discover-connected-crimes.md)
+7. ✅ [Solve the crime](07-solve-the-crime.md)
+8. ✅ [Deploy your agent to CF with A2A](08-deploy-agent-to-cf-ts.md) (this exercise)
 
 ---
 
@@ -695,7 +696,7 @@ flowchart TD
 
 **Issue**: `cf push` fails with `health check failed`
 
-- **Solution**: Check `cf logs investigator-crew-ts-<YOUR NAME> --recent`. Common causes:
+- **Solution**: Check `cf logs investigator-graph-ts-<YOUR NAME> --recent`. Common causes:
   - TypeScript compile error — run `npm run build` locally first to verify
   - Missing dependency in `package.json`
   - Service binding not found — verify the service name matches exactly (`generative-ai-hub`)
@@ -706,11 +707,11 @@ flowchart TD
 
 **Issue**: `/.well-known/agent.json` returns a wrong URL
 
-- **Solution**: This should not happen — the URL is read from `VCAP_APPLICATION` automatically. If it does, verify that `VCAP_APPLICATION` is present by checking `cf env investigator-crew-ts-<YOUR NAME>`.
+- **Solution**: This should not happen — the URL is read from `VCAP_APPLICATION` automatically. If it does, verify that `VCAP_APPLICATION` is present by checking `cf env investigator-graph-ts-<YOUR NAME>`.
 
 **Issue**: App crashes immediately after startup
 
-- **Solution**: Check `cf logs investigator-crew-ts-<YOUR NAME> --recent`. Likely causes:
+- **Solution**: Check `cf logs investigator-graph-ts-<YOUR NAME> --recent`. Likely causes:
   - Missing `GROUNDING_PIPELINE_ID` or `MODEL_NAME` in `manifest.yml`
   - TypeScript not compiled — verify `dist/server.js` exists by running `npm run build` locally
 

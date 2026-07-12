@@ -57,6 +57,7 @@ class InvestigatorExecutor(AgentExecutor):
                 "suspect_names": suspect_names,
                 "appraisal_result": None,
                 "evidence_analysis": None,
+                "intelligence_report": None,
                 "final_conclusion": None,
                 "messages": [],
             }),

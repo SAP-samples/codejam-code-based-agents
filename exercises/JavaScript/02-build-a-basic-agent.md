@@ -399,7 +399,8 @@ In the following exercises, you will:
 4. 📌 [Add custom tools](03-add-your-first-tool.md) to your agents so they can access external data
 5. 📌 [Build a multi-agent workflow](04-building-multi-agent-system.md) with LangGraph
 6. 📌 [Integrate the Grounding Service](05-add-the-grounding-service.md) for evidence analysis
-7. 📌 [Solve the museum art theft mystery](06-solve-the-crime.md) using your fully-featured agent team
+7. 📌 [Discover Connected Crimes](06-discover-connected-crimes.md): Add web search with Perplexity sonar-pro
+8. 📌 [Solve the museum art theft mystery](07-solve-the-crime.md) using your fully-featured agent team
 
 ---
 

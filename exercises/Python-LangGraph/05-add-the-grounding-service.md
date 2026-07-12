@@ -188,7 +188,8 @@ flowchart LR
 2. ✅ Add the RPT-1 tool
 3. ✅ Build a multi-agent graph with supervisor
 4. ✅ Add the Grounding Service (this exercise)
-5. 📌 [Solve the crime](06-solve-the-crime.md) — add a Lead Detective and wire up the full investigation
+5. 📌 [Add web search capabilities](06-discover-connected-crimes.md) — add an Intelligence Researcher node with Sonar-Pro
+6. 📌 [Solve the crime](07-solve-the-crime.md) — finalize the Lead Detective and solve the mystery
 6. 📌 Deploy to Cloud Foundry with A2A
 
 ---
@@ -214,4 +215,4 @@ flowchart LR
 - [SAP AI Core Grounding Management](https://help.sap.com/docs/sap-ai-core/sap-ai-core-service-guide/document-grounding)
 - [SAP Cloud SDK for AI Python Reference](https://help.sap.com/doc/generative-ai-hub-sdk/CLOUD/en-US/_reference/gen_ai_hub.html)
 
-[Next exercise](06-solve-the-crime.md)
+[Next exercise](06-discover-connected-crimes.md)
