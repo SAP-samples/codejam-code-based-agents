@@ -107,7 +107,8 @@ const orchestrationClient = new OrchestrationClient({
       },
     },
   },
-});
+},
+{resourceGroup: 'ai-agents-codejam'});
 ```
 
 > 💡 **Understanding the OrchestrationClient:**
