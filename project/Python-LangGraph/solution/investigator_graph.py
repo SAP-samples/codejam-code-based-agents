@@ -91,7 +91,7 @@ def call_sonar_pro_search(query: str) -> str:
 
 
 # Initialize the shared LLM
-model = ChatLiteLLM(model="sap/amazon--nova-pro", temperature=0)
+model = ChatLiteLLM(model="sap/gemini-2.5-flash-lite", temperature=0)
 
 
 def appraiser_node(state: AgentState) -> dict:
@@ -235,8 +235,9 @@ def build_graph():
     workflow.add_node("lead_detective", lead_detective_node)
     workflow.add_edge(START, "appraiser")
     workflow.add_edge("appraiser", "evidence_analyst")
-    workflow.add_edge("evidence_analyst", "intelligence_researcher")
-    workflow.add_edge("intelligence_researcher", "lead_detective")
+    #workflow.add_edge("evidence_analyst", "intelligence_researcher")
+    #workflow.add_edge("intelligence_researcher", "lead_detective")
+    workflow.add_edge("evidence_analyst", "lead_detective")
     workflow.add_edge("lead_detective", END)
 
     return workflow.compile()
