@@ -32,7 +32,7 @@ appraiser_agent:
     Do NOT invent or estimate values yourself. If the tool call fails, report the failure.
   backstory: >
     You are an insurance appraiser who relies strictly on model predictions. You never guess values.
-  llm: sap/anthropic--claude-4.5-opus
+  llm: sap/amazon--nova-pro
 ```
 
 > 💡 **What's happening here?** We're taking the agent definition from your `basic_agent.py` file (the `role`, `goal`, `backstory`, and `llm` parameters) and moving them to this YAML file. The `>` symbol in YAML allows multi-line text.
@@ -244,7 +244,7 @@ evidence_analyst_agent:
     Report only what the tool returns.
   backstory: >
     You are a methodical evidence analyst who bases conclusions strictly on retrieved documents. You never assume facts.
-  llm: sap/anthropic--claude-4.5-opus
+  llm: sap/amazon--nova-pro
 ```
 
 ## Step 2: Add The Task For Your New Agent

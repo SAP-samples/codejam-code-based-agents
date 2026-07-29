@@ -91,7 +91,7 @@ def call_sonar_pro_search(query: str) -> str:
 
 
 # Initialize the shared LLM
-model = ChatLiteLLM(model="sap/anthropic--claude-4.5-opus", temperature=0)
+model = ChatLiteLLM(model="sap/amazon--nova-pro", temperature=0)
 
 
 def appraiser_node(state: AgentState) -> dict:

@@ -158,7 +158,7 @@ def call_grounding_service(user_question: str) -> str:
 
 ```python
 # Initialize the shared LLM
-model = ChatLiteLLM(model="sap/anthropic--claude-4.5-opus", temperature=0)
+model = ChatLiteLLM(model="sap/amazon--nova-pro", temperature=0)
 ```
 
 #### Part 4: Define the Agent Nodes
