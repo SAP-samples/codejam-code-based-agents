@@ -50,7 +50,7 @@ https://github.com/SAP-samples/codejam-code-based-agents.git
 
 ## Configure the connection details to Generative AI Hub
 
-👉 Create a new file `.env` in the [/project/Python/starter-project/.env](/project/Python/starter-project/.env) directory (click on the link to create the file).
+👉 Create a new file `.env` in the [/project/Python/starter-project/.env](/project/Python/starter-project/) directory (click on the link to create the file).
 
 👉 Add the following variables to your `.env` file:
 
