@@ -91,7 +91,7 @@ def call_sonar_pro_search(query: str) -> str:
 
 
 # Initialize the shared LLM
-model = ChatLiteLLM(model="sap/anthropic--claude-4.5-opus", temperature=0)
+model = ChatLiteLLM(model="sap/gemini-2.5-flash-lite", temperature=0)
 
 
 def appraiser_node(state: AgentState) -> dict:
@@ -173,11 +173,14 @@ def intelligence_researcher_node(state: AgentState) -> dict:
         pattern_result = call_sonar_pro_search(pattern_query)
         intelligence_results.append(f"Similar Art Theft Patterns:\n{pattern_result}")
 
-        intelligence_report = (
-            "Intelligence Research Complete:\n\n" + "\n\n".join(intelligence_results) +
-            f"\n\nSummary: Conducted OSINT research on all suspects and identified similar crime patterns"
-        )
+        raw_results = "Intelligence Research Complete:\n\n" + "\n\n".join(intelligence_results)
 
+        response = model.invoke([
+            SystemMessage(content=WEB_RESEARCHER_AGENT["prompt"]),
+            HumanMessage(content=f"Here are the web search results. Write a concise intelligence report:\n\n{raw_results}"),
+        ])
+
+        intelligence_report = response.content
         print("✅ Intelligence research complete")
 
         return {
@@ -232,8 +235,9 @@ def build_graph():
     workflow.add_node("lead_detective", lead_detective_node)
     workflow.add_edge(START, "appraiser")
     workflow.add_edge("appraiser", "evidence_analyst")
-    workflow.add_edge("evidence_analyst", "intelligence_researcher")
-    workflow.add_edge("intelligence_researcher", "lead_detective")
+    #workflow.add_edge("evidence_analyst", "intelligence_researcher")
+    #workflow.add_edge("intelligence_researcher", "lead_detective")
+    workflow.add_edge("evidence_analyst", "lead_detective")
     workflow.add_edge("lead_detective", END)
 
     return workflow.compile()

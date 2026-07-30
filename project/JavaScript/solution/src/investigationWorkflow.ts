@@ -126,9 +126,22 @@ export class InvestigationWorkflow {
       const patternResult = await callSonarProSearchTool(patternQuery);
       intelligenceResults.push(`Similar Art Theft Patterns:\n${patternResult}`);
 
-      const intelligenceReport = `Intelligence Research Complete: ${intelligenceResults.join("\n\n")}
-      Summary: Conducted OSINT research on all suspects and identified similar crime patterns`;
+      const rawResults = `Intelligence Research Complete:\n\n${intelligenceResults.join("\n\n")}`;
 
+      const response = await this.orchestrationClient.chatCompletion({
+        messages: [
+          {
+            role: "system",
+            content: AGENT_CONFIGS.intelligenceResearcher.systemPrompt(state.suspect_names),
+          },
+          {
+            role: "user",
+            content: `Here are the web search results. Write a concise intelligence report:\n\n${rawResults}`,
+          },
+        ],
+      });
+
+      const intelligenceReport = response.getContent() || "No intelligence report could be generated.";
       console.log("✅ Intelligence research complete");
 
       return {

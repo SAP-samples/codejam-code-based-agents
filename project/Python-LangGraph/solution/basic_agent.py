@@ -35,7 +35,7 @@ def call_rpt1(payload: dict) -> str:
 
 
 # Initialize the LLM via LiteLLM pointing to SAP Generative AI Hub
-model = ChatLiteLLM(model="sap/anthropic--claude-4.5-opus", temperature=0)
+model = ChatLiteLLM(model="sap/gemini-2.5-flash-lite", temperature=0)
 
 system_prompt = """You are an experienced Stolen Goods Loss Appraiser specializing in fine art and valuables.
 Your goal is to assess the value of stolen items and provide a professional insurance appraisal report.
