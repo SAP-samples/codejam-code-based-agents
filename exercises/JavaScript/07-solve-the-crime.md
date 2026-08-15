@@ -37,7 +37,7 @@ export class InvestigationWorkflow {
           },
         },
       },
-    });
+    }, { resourceGroup: process.env.RESOURCE_GROUP });
     this.graph = this.buildGraph();
   }
 }
