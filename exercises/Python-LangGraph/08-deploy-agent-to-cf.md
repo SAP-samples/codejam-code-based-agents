@@ -289,6 +289,14 @@ sap-ai-sdk-core==3.3.0
 sap-ai-sdk-gen==6.7.0
 ```
 
+👉 Install the new dependencies into your virtual environment:
+
+```bash
+pip install -r ./project/Python-LangGraph/starter-project/requirements.txt
+```
+
+> 💡 Editing `requirements.txt` only records the dependencies — it does not install them. Cloud Foundry's Python buildpack runs this install for you during `cf push`, so this step matters when you want to start `server.py` locally before deploying: without it the server fails with `ModuleNotFoundError: No module named 'a2a'`.
+
 ---
 
 ## Create the Deployment Manifest
@@ -565,7 +573,7 @@ flowchart TD
 
 **Issue**: `ModuleNotFoundError: No module named 'a2a'`
 
-- **Solution**: Ensure `a2a-sdk[http-server]` is in `requirements.txt`. The square brackets are important — they install optional HTTP server dependencies.
+- **Solution**: Ensure `a2a-sdk[http-server]` is in `requirements.txt`. The square brackets are important — they install optional HTTP server dependencies. If the error appears when you start the server locally, also run `pip install -r ./project/Python-LangGraph/starter-project/requirements.txt` — updating the file does not install anything into your virtual environment.
 
 **Issue**: `/.well-known/agent-card.json` returns a wrong URL
 
