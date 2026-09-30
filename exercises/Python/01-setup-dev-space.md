@@ -50,31 +50,31 @@ https://github.com/SAP-samples/codejam-code-based-agents.git
 
 ## Configure the connection details to Generative AI Hub
 
-👉 Create a new file `.env` in the [/project/Python/starter-project/.env](/project/Python/starter-project/.env) directory (click on the link to create the file).
+👉 Create a new file `.env` in the [/project/Python/starter-project/.env](/project/Python/starter-project/.env) directory (click on the link to create the file, if this instructions are open in the SAP BAS).
 
 👉 Add the following variables to your `.env` file:
 
 ```Python
 LITELLM_PROVIDER="sap"
 AICORE_AUTH_URL="https://#####.authentication.eu10.hana.ondemand.com/oauth/token"
-AICORE_CLIENT_ID="sb-3c636fc2-d352-496a-851d-7a7d6005dcd4!b505946|aicore!b540"
+AICORE_CLIENT_ID="sb-e7137a89-ec15-46ff-910e-f97a5f6541f8!b505946|aicore!b540"
 AICORE_CLIENT_SECRET="#####"
 AICORE_RESOURCE_GROUP="ai-agents-codejam"
 AICORE_BASE_URL="https://api.ai.prod.eu-central-1.aws.ml.hana.ondemand.com"
-RPT1_DEPLOYMENT_URL="https://api.ai.prod.eu-central-1.aws.ml.hana.ondemand.com/v2/inference/deployments/###/predict"
+RPT1_DEPLOYMENT_URL="https://api.ai.prod.eu-central-1.aws.ml.hana.ondemand.com/v2/inference/deployments/#####/predict"
 ```
 
-👉 You will need to UPDATE these variables but keep the given structure. The correct information you can find in the SAP AI Core service-key in your BTP cockpit.
+👉 You will need to **update these variables**, but keep the given structure. The correct information you can find in the SAP AI Core service key `codejam-genai-sk` in your BTP cockpit.
 
 👉 Go back to the Subaccount in the [BTP cockpit](https://emea.cockpit.btp.cloud.sap/cockpit/?idp=a7rg4vxjp.accounts.ondemand.com#/globalaccount/275320f9-4c26-4622-8728-b6f5196075f5/subaccount/a5a420d8-58c6-4820-ab11-90c7145da589?layout=TwoColumnsMidExpanded).
 
-👉 Navigate to `Instances and Subscriptions` and open the SAP AI Core instance's service binding.
+👉 Navigate to `Instances and Subscriptions` and open the SAP AI Core instance's service key `codejam-genai-sk`.
 
 ![Service Binding in the BTP Cockpit](/exercises/data/images/service-binding.png)
 
-👉 Make sure the correct resource group `AICORE_RESOURCE_GROUP` is assigned, we will use `ai-agents-codejam` for this CodeJam.
+👉 Make sure the correct resource group `AICORE_RESOURCE_GROUP` is assigned; you will use `ai-agents-codejam` for this CodeJam.
 
-> ☝️ You will update the `RPT-1_DEPLOYMENT_URL` in a later exercise.
+> ☝️ You will **update the `RPT-1_DEPLOYMENT_URL` in a later exercise**.
 
 ## Create a Python virtual environment and install the LiteLLM and CrewAI
 
@@ -150,12 +150,8 @@ _Windows (Command Prompt)_
 👉 Install LiteLLM, CrewAI, and python-dotenv using the following `pip install` commands.
 
 ```bash
-pip install litellm==1.82.6 crewai python-dotenv
+pip install --require-virtualenv litellm==1.82.6 crewai python-dotenv
 ```
-
-> In case you see a message in BAS asking you to create an isolated environment, click on `Don't show again`.
-
-![bas-message](/exercises/data/images/virtual-env-python-bas-warning.png)
 
 ## Let's start coding
 
