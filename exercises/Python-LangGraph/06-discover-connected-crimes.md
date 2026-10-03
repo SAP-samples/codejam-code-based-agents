@@ -134,21 +134,15 @@ def intelligence_researcher_node(state: AgentState) -> dict:
     print("\n🔍 Intelligence Researcher starting web search...")
 
     try:
-        suspects = [s.strip() for s in state["suspect_names"].split(",")]
-        intelligence_results = []
+        print(f"  Searching public records for: {state['suspect_names']}")
+        query = (
+            f"Background check for suspects {state['suspect_names']}: "
+            f"criminal record, art theft involvement, security technician background, Europe. "
+            f"Also include similar museum art theft incidents with no forced entry, insider job patterns, criminal networks in Europe."
+        )
+        result = call_sonar_pro_search(query)
 
-        for suspect in suspects:
-            print(f"  Searching public records for: {suspect}")
-            query = f"{suspect} criminal record art theft security technician Europe background check"
-            result = call_sonar_pro_search(query)
-            intelligence_results.append(f"Background check for {suspect}:\n{result}")
-
-        print("  Searching for similar art theft incidents...")
-        pattern_query = "museum art theft insider job no forced entry Europe similar incidents criminal network"
-        pattern_result = call_sonar_pro_search(pattern_query)
-        intelligence_results.append(f"Similar Art Theft Patterns:\n{pattern_result}")
-
-        raw_results = "Intelligence Research Complete:\n\n" + "\n\n".join(intelligence_results)
+        raw_results = f"Intelligence Research Complete:\n\n{result}"
 
         response = model.invoke([
             SystemMessage(content=WEB_RESEARCHER_AGENT["prompt"]),
@@ -336,10 +330,7 @@ python .\project\Python-LangGraph\starter-project\main.py
 > ✅ Evidence analysis complete
 >
 > 🔍 Intelligence Researcher starting web search...
->   Searching public records for: Sophie Dubois
->   Searching public records for: Marcus Chen
->   Searching public records for: Viktor Petrov
->   Searching for similar art theft incidents...
+>   Searching public records for: Sophie Dubois, Marcus Chen, Viktor Petrov
 > ✅ Intelligence research complete
 >
 > 🔍 Lead Detective analyzing all findings...

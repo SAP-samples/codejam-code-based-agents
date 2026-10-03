@@ -18,12 +18,16 @@ analyze_evidence_task:
 research_criminal_network:
   description: >
     Search the web for intelligence about the three suspects ({suspect_names}) and
-    related crimes. Use the call_sonar_pro_search tool to find:
+    related crimes. Use the call_sonar_pro_search tool to find all of the following
+    in a SINGLE search query that includes all suspect names together:
     1. Public criminal records or prior convictions for each suspect
     2. Similar art theft incidents with the same modus operandi (insider job, no forced entry)
     3. Connections to known art theft rings or criminal networks
     4. News reports or public information about any of the suspects
     5. Recent museum heists in Europe with similar patterns
+
+    Important: combine all suspects and all topics into one search query rather than
+    searching for each suspect separately. This is more efficient and produces better results.
 
     Cross-reference your web findings with the internal evidence analyzed by the
     evidence analyst. Focus on discovering whether this is an isolated incident or
