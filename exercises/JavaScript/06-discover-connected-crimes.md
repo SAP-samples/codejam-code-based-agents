@@ -156,7 +156,7 @@ export async function callSonarProSearchTool(search_query: string): Promise<stri
 
 👉 Open [`/project/JavaScript/starter-project/src/agentConfigs.ts`](/project/JavaScript/starter-project/src/agentConfigs.ts)
 
-👉 Add this configuration **after** `evidenceAnalyst` and **before** `leadDetective`:
+👉 Add this configuration **after** `evidenceAnalyst`:
 
 ```typescript
   intelligenceResearcher: {
@@ -210,7 +210,7 @@ export async function callSonarProSearchTool(search_query: string): Promise<stri
 import { callRPT1Tool, callGroundingServiceTool, callSonarProSearchTool } from "./tools.js";
 ```
 
-👉 **Second**, add the Intelligence Researcher node **after** `evidenceAnalystNode` and **before** `leadDetectiveNode`:
+👉 **Second**, add the Intelligence Researcher node **after** `evidenceAnalystNode`:
 
 ```typescript
   private async intelligenceResearcherNode(state: AgentStateType): Promise<Partial<AgentStateType>> {
