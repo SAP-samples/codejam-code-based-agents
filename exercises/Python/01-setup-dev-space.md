@@ -68,17 +68,17 @@ RPT1_DEPLOYMENT_URL="https://api.ai.prod.eu-central-1.aws.ml.hana.ondemand.com/v
 
 👉 Go back to the Subaccount in the [BTP cockpit](https://emea.cockpit.btp.cloud.sap/cockpit/?idp=a7rg4vxjp.accounts.ondemand.com#/globalaccount/275320f9-4c26-4622-8728-b6f5196075f5/subaccount/a5a420d8-58c6-4820-ab11-90c7145da589?layout=TwoColumnsMidExpanded).
 
-👉 Navigate to `Instances and Subscriptions` and open the SAP AI Core instance's service key `codejam-genai-sk`.
+👉 Navigate to **Instances and Subscriptions** -> **Instances** and find the **SAP AI Core** instance in the list. From **Credentials** column click on **keys** and open a service key `codejam-genai-sk` from the drop down list.
 
 ![Service Binding in the BTP Cockpit](/exercises/data/images/service-binding.png)
 
-👉 Make sure the correct resource group `AICORE_RESOURCE_GROUP` is assigned; you will use `ai-agents-codejam` for this CodeJam.
+👉 Make sure the correct resource group `AICORE_RESOURCE_GROUP` is assigned to `ai-agents-codejam` for this CodeJam.
 
 > ☝️ You will **update the `RPT-1_DEPLOYMENT_URL` in a later exercise**.
 
-## Create a Python virtual environment and install the LiteLLM and CrewAI
+## Create a Python virtual environment and install the LiteLLM and CrewAI dependencies
 
-👉 Start a new Terminal.
+👉 Open a new Terminal panel in SAP BAS.
 
 ![Start terminal](/exercises/data/images/start_terminal.png)
 
@@ -97,13 +97,13 @@ python3 --version
 >     Then use `python3.11` in the commands below.
 > - **Windows**: Install Python 3.11 from the [official Python downloads page](https://www.python.org/downloads/windows/) and make sure **Add python.exe to PATH** is enabled during installation. Then use `python` (or `py -3.11`) in the commands below.
 
-👉 Create a virtual environment using the following command:
+👉 Create a virtual environment using the following command in SAP BAS:
 
 ```bash
 python3 -m venv ~/projects/codejam-code-based-agents/env --upgrade-deps
 ```
 
-Or use the variant that matches your OS/shell if not in BAS:
+Or use the variant that matches your OS/shell, if not in BAS:
 
 _macOS / Linux_
 
@@ -117,13 +117,13 @@ _Windows (PowerShell)_
 python -m venv .\env --upgrade-deps
 ```
 
-👉 Activate the `env` virtual environment like this and make sure it is activated:
+👉 Activate the `env` virtual environment like this in SAP BAS, and make sure it is activated:
 
 ```bash
 source ~/projects/codejam-code-based-agents/env/bin/activate
 ```
 
-Use the activation command for your environment:
+Or use the activation command for your environment, if not in BAS:
 
 _macOS / Linux_
 
@@ -147,7 +147,7 @@ _Windows (Command Prompt)_
 
 ![venv](/exercises/data/images/venv.png)
 
-👉 Install LiteLLM, CrewAI, and python-dotenv using the following `pip install` commands.
+👉 Install `LiteLLM`, `CrewAI`, and `python-dotenv` Python dependencies using the following `pip install` command:
 
 ```bash
 pip install --require-virtualenv litellm==1.82.6 crewai python-dotenv
