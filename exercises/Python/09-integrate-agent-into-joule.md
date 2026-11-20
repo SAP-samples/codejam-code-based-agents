@@ -164,7 +164,7 @@ The `agent-request` action in your Joule function doesn't call your CF app direc
 |---|---|
 | **Name** | `INVESTIGATOR_AGENT_XX` |
 | **Type** | HTTP |
-| **URL** | `https://investigator-crew-a2a-<your-app-route>.cfapps.eu10-004.hana.ondemand.com` |
+| **URL** | `https://investigator-crew-<your-app-route>.cfapps.eu10-004.hana.ondemand.com` |
 | **Proxy Type** | Internet |
 | **Authentication** | NoAuthentication |
 
