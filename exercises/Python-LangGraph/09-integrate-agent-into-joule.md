@@ -168,6 +168,8 @@ The `agent-request` action in your Joule function doesn't call your CF app direc
 | **Proxy Type** | Internet |
 | **Authentication** | NoAuthentication |
 
+👉 Under **Additional Properties** add the following `HTML5.DynamicDestination = true`
+
 > ⚠️ **Replace `XX` with your participant number** (e.g., `INVESTIGATOR_AGENT_01`, `INVESTIGATOR_AGENT_02`). This ensures each participant has a unique destination. You'll use this exact name in all YAML files below.
 
 > ⚠️ **Replace `<your-app-route>`** with the actual route of your CF app from Exercise 08. You can find it by running `cf apps` or by checking the URL you noted at the end of Exercise 08.
